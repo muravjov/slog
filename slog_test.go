@@ -1,19 +1,16 @@
 package slog
 
 import (
-	"github.com/getsentry/raven-go"
 	"time"
 	"os"
 	"testing"
+	"github.com/op/go-logging"
+	"log"
+	"github.com/getsentry/raven-go"
 )
 
-func ForceException() {
-	i := 0
-	i = 1 / i
-}
-
 func TestSlog(t *testing.T) {
-	if true {
+	if false {
 		dsn := os.Args[1]
 		raven.SetDSN(dsn)
 
@@ -25,5 +22,26 @@ func TestSlog(t *testing.T) {
 		}, nil)
 
 		time.Sleep(time.Hour)
+	}
+
+	if false {
+		logger := logging.MustGetLogger("example")
+
+		logger.Errorf("error: %s", "arg")
+
+		//backend := logging.NewLogBackend(os.Stdout, "prefix", 0)
+		backend := NewSB()
+		logging.SetBackend(backend)
+
+		logger.Errorf("error: %s", "arg2")
+	}
+
+	if false {
+		log.Println("msg1")
+
+		HookStandardLog()
+
+		log.Println("msg2")
+		log.Fatal("fatal msg")
 	}
 }
