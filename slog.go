@@ -8,6 +8,10 @@ import (
 	"github.com/getsentry/raven-go"
 	"bytes"
 	"errors"
+	"runtime"
+	"path"
+	"unsafe"
+	"time"
 )
 
 func ForceException() {
@@ -31,11 +35,122 @@ func SendToSentry(s string, tags map[string]string, isWarning bool) {
 	}
 }
 
+type LoggingRecord struct {
+	ID     uint64
+	Time   time.Time
+	Module string
+	Level  logging.Level
+	Args   []interface{}
+
+	// message is kept as a pointer to have shallow copies update this once
+	// needed.
+	message   *string
+	fmt       *string
+	formatter logging.Formatter
+	formatted string
+}
+
+func Record2Level(rec *logging.Record) raven.Severity {
+	res := raven.ERROR
+	switch rec.Level {
+	case logging.WARNING:
+		res = raven.WARNING
+	case logging.CRITICAL:
+		res = raven.FATAL
+	}
+
+	return res
+}
+
+// :TRICKY: have to fork this code with losses (shouldExcludeErr) because want Params != nil
+func CaptureMessageAndWait(message string, tags map[string]string, rec *logging.Record, calldepth int) string {
+	client := raven.DefaultClient
+
+	if client == nil {
+		return ""
+	}
+
+	//if client.shouldExcludeErr(message) {
+	//	return ""
+	//}
+
+	var fn string
+	pc, pathname, line, ok := runtime.Caller(calldepth)
+	if ok {
+		fn = path.Base(pathname)
+	}
+
+	// * aggregation key
+
+	// .fmt is private, f*ck
+	//key := rec.fmt
+
+	//key := message
+	//if ok {
+	//	if f := runtime.FuncForPC(pc); f != nil {
+	//		key = fmt.Sprintf("%s:%d:%s", fn, line, f.Name())
+	//	}
+	//}
+	_ = pc
+
+	key := message
+	lRec := (*LoggingRecord)(unsafe.Pointer(rec))
+	if lRec.fmt != nil {
+		key = *lRec.fmt
+	}
+
+	packet := raven.NewPacket(message, &raven.Message{key, rec.Args})
+
+	if ok {
+		extra := packet.Extra
+		extra["filename"] = fn
+		extra["lineno"] = line
+		extra["pathname"] = pathname
+	}
+
+	packet.Level = Record2Level(rec)
+
+	eventID, ch := client.Capture(packet, tags)
+	<-ch
+
+	return eventID
+}
+
+func CaptureErrorAndWait(message string, tags map[string]string, calldepth int, level raven.Severity) string {
+	client := raven.DefaultClient
+
+	if client == nil {
+		return ""
+	}
+
+	//if client.shouldExcludeErr(err.Error()) {
+	//	return ""
+	//}
+
+	// :TRICKY: original CaptureError() use Exception type, which needs proper error type,
+	// but we do not have it for go-logging and log packages
+
+	// aggregating is done by stacktrace
+
+	stacktrace := raven.NewStacktrace(calldepth, 3, client.IncludePaths())
+	packet := raven.NewPacket(message, stacktrace)
+
+	packet.Level = level
+
+	eventID, ch := client.Capture(packet, tags)
+	<-ch
+
+	return eventID
+}
+
+
 func (l *SentryBackend) Log(level logging.Level, calldepth int, rec *logging.Record) error {
 	if level <= logging.WARNING {
+		cd := calldepth+2
+
 		//s := rec.Formatted(calldepth+2)
 		buf := new(bytes.Buffer)
-		logging.DefaultFormatter.Format(calldepth+2, rec, buf)
+		logging.DefaultFormatter.Format(cd, rec, buf)
 		s := buf.String()
 		//fmt.Println(s)
 
@@ -46,7 +161,14 @@ func (l *SentryBackend) Log(level logging.Level, calldepth int, rec *logging.Rec
 			}
 		}
 
-		SendToSentry(s, tags, level == logging.WARNING)
+		isWarning := level == logging.WARNING
+		if isWarning {
+			//SendToSentry(s, tags, isWarning)
+			CaptureMessageAndWait(s, tags, rec, cd)
+		} else {
+			//SendToSentry(s, tags, isWarning)
+			CaptureErrorAndWait(s, tags, cd, Record2Level(rec))
+		}
 	}
 	return nil
 }
@@ -97,6 +219,7 @@ func (w *SentryLog) Write(p []byte) (n int, err error) {
 	// because of log.LstdFlags we need to skip 2 spaces
 	s = SkipSpace(SkipSpace(s))
 	//SendToSentry(s, nil, false)
+	CaptureErrorAndWait(s, nil, 4, raven.ERROR)
 
 	return n, err
 }
