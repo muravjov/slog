@@ -85,7 +85,21 @@ func TestSlog(t *testing.T) {
 		//logger.Warningf("warning: %s", RandStringBytes(8))
 
 		//logger.Warning("static message")
-		logger.Fatal("fatal message")
+		//logger.Fatal("fatal message")
+
+		type Status struct {
+			Vhost  string `protobuf:"bytes,1,opt,name=vhost" json:"vhost,omitempty"`
+			Node   string `protobuf:"bytes,2,opt,name=node" json:"node,omitempty"`
+			Status string `protobuf:"bytes,3,opt,name=status" json:"status,omitempty"`
+			Error  string `protobuf:"bytes,4,opt,name=error" json:"error,omitempty"`
+		}
+
+		logger.Errorf("Can't post status: %s, %+v", "502", Status{
+			Vhost: "test.ru",
+			Node: "test-node",
+			Status: "failed",
+			Error: RandStringBytes(8),
+		})
 	}
 
 	if false {
