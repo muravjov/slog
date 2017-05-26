@@ -9,6 +9,9 @@ import (
 	"github.com/getsentry/raven-go"
 	"math/rand"
 	"fmt"
+	"bytes"
+	"io/ioutil"
+	"io"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -30,7 +33,7 @@ func RandStringBytes(n int) string {
 
 func TestSlog(t *testing.T) {
 	dsn := os.Args[2]
-	raven.SetDSN(dsn)
+	MustSetDSN(dsn)
 
 
 	if false {
@@ -76,7 +79,7 @@ func TestSlog(t *testing.T) {
 		log.Fatal("fatal msg: ", RandStringBytes(8))
 	}
 
-	if true {
+	if false {
 		// :REFACTOR:
 		logger := logging.MustGetLogger("example")
 		backend := NewSB()
@@ -107,4 +110,51 @@ func TestSlog(t *testing.T) {
 		fmt.Println(RandStringBytes(8))
 	}
 
+	if true {
+		stdErr := `
+panic: runtime error: integer divide by zero
+
+goroutine 26 [running]:
+panic(0x978840, 0xc420010140)
+        /home/ilya/opt/programming/golang/git/src/runtime/panic.go:500 +0x1a1
+slog.ForceException()
+        /home/ilya/opt/programming/g-core/cdn-tools/src/slog/slog.go:19 +0x2c
+main.main.func1.1()
+        /home/ilya/opt/programming/g-core/cdn-tools/src/mapi/main.go:166 +0x14
+created by main.main.func1
+        /home/ilya/opt/programming/g-core/cdn-tools/src/mapi/main.go:167 +0xc8
+`
+		in := bytes.NewBufferString(stdErr)
+
+		ProcessStream(in, ioutil.Discard)
+	}
+
+	if false {
+		buf := bytes.NewBuffer(nil)
+
+		out := io.Writer(buf)
+
+		dw := NewDW(out)
+		out2 := io.Writer(dw)
+
+		n, err := out2.Write([]byte("ggg"))
+		CheckError(err)
+		Assert(n == 3)
+
+		Assert(buf.String() == "ggg")
+		Assert(dw.Buf.String() == "ggg")
+	}
+}
+
+// :REFACTOR:
+func CheckError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func Assert(b bool)  {
+	if !b {
+		panic("Assertion error")
+	}
 }
