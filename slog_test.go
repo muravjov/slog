@@ -126,23 +126,7 @@ created by main.main.func1
 `
 		in := bytes.NewBufferString(stdErr)
 
-		ProcessStream(in, ioutil.Discard)
-	}
-
-	if false {
-		buf := bytes.NewBuffer(nil)
-
-		out := io.Writer(buf)
-
-		dw := NewDW(out)
-		out2 := io.Writer(dw)
-
-		n, err := out2.Write([]byte("ggg"))
-		CheckError(err)
-		Assert(n == 3)
-
-		Assert(buf.String() == "ggg")
-		Assert(dw.Buf.String() == "ggg")
+		ProcessStream(in)
 	}
 }
 

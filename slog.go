@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"io"
 	"github.com/maruel/panicparse/stack"
+	"io/ioutil"
 )
 
 func ForceException() {
@@ -260,9 +261,7 @@ func init() {
 	if dsn != "" {
 		MustSetDSN(dsn)
 
-		// :TODO!!!: os.Stderr
-		var out io.Writer = os.Stdout
-		ProcessStream(os.Stdin, out)
+		ProcessStream(os.Stdin)
 
 		os.Exit(0)
 	}
@@ -274,7 +273,7 @@ func CheckFatal(format string, err error) {
 	}
 }
 
-func StartWatcher(dsn string, logFileName string) {
+func StartWatcher(dsn string, errFileName string) {
 	cx, err := osext.Executable()
 	CheckFatal("osext.Executable(): %s", err)
 
@@ -282,14 +281,18 @@ func StartWatcher(dsn string, logFileName string) {
 	env := os.Environ()
 	env = append(env, mark)
 
+	var errFile *os.File
 	var logFile *os.File
-	if logFileName == "" {
-		logFile, err = os.Open(os.DevNull)
-		CheckFatal("Can't open: %s", err)
+	if errFileName == "" {
+		errFile = os.Stderr
+		//logFile, err = os.Open(os.DevNull)
+		//CheckFatal("Can't open: %s", err)
 	} else {
-		logFile, err = os.OpenFile(logFileName,
+		logFile, err = os.OpenFile(errFileName,
 			os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0640))
 		CheckFatal("Can't open: %s", err)
+
+		errFile = logFile
 	}
 	defer func() {
 		if logFile != nil {
@@ -305,8 +308,7 @@ func StartWatcher(dsn string, logFileName string) {
 	f := []*os.File{
 		in,          // (0) stdin
 		os.Stdout,   // (1) stdout
-		//os.Stderr,
-		logFile,     // (2) stderr
+		errFile,     // (2) stderr
 	}
 
 	attr := &os.ProcAttr{
@@ -328,7 +330,7 @@ func StartWatcher(dsn string, logFileName string) {
 	syscall.Dup2(int(wpipe.Fd()), 2)
 }
 
-func ProcessStream(in io.Reader, out io.Writer) {
+func ProcessStream(in io.Reader) {
 	// :TRICKY: stack.ParseDump() searches for
 	//    goroutine <N> [<status>]:
 	// but every crash starts like that:
@@ -336,62 +338,82 @@ func ProcessStream(in io.Reader, out io.Writer) {
 	// see printpanics()
 	// :TODO: parse <real err> and add it to message
 
-	dw := NewDW(out)
-	goroutines, err := stack.ParseDump(in, dw)
+	wr := NewWR(in)
+	goroutines, err := stack.ParseDump(wr, ioutil.Discard)
 	if err != nil {
 		log.Fatalf("ParseDump: %s", err)
 	}
 
-	if len(goroutines) == 0 {
-		log.Fatal("No crash found")
-	}
+	if len(goroutines) != 0 {
+		failedG := goroutines[0]
+		//fmt.Println(failedG)
 
-	failedG := goroutines[0]
-	//fmt.Println(failedG)
+		calls := failedG.Stack.Calls
+		var frames []*raven.StacktraceFrame
+		for i := range calls {
+			call := calls[len(calls)-1-i]
 
-	calls := failedG.Stack.Calls
-	var frames []*raven.StacktraceFrame
-	for i := range calls {
-		call := calls[len(calls)-1-i]
+			f := call.Func
+			// NewStacktraceFrame
+			frame := &raven.StacktraceFrame{
+				Filename:     call.SourcePath,
+				Function: f.Name(),
+				Module: f.PkgName(),
 
-		f := call.Func
-		// NewStacktraceFrame
-		frame := &raven.StacktraceFrame{
-			Filename:     call.SourcePath,
-			Function: f.Name(),
-			Module: f.PkgName(),
+				AbsolutePath: call.SourcePath,
+				Lineno: call.Line,
+				InApp: false,
+			}
 
-			AbsolutePath: call.SourcePath,
-			Lineno: call.Line,
-			InApp: false,
+			frames = append(frames, frame)
 		}
 
-		frames = append(frames, frame)
+		stacktrace := &raven.Stacktrace{frames}
+
+		accOut := wr.Buf.String()
+
+		CaptureAndWait(fmt.Sprintf("Post-mortem: %s", accOut), stacktrace, nil, raven.FATAL)
 	}
-
-	stacktrace := &raven.Stacktrace{frames}
-
-	accOut := dw.Buf.String()
-
-	CaptureAndWait(fmt.Sprintf("Post-mortem: %s", accOut), stacktrace, nil, raven.FATAL)
 }
 
-type DoubleWriter struct {
-	origWriter io.Writer
+//type DoubleWriter struct {
+//	origWriter io.Writer
+//	Buf        *bytes.Buffer
+//}
+//
+//func NewDW(out io.Writer) *DoubleWriter {
+//	return &DoubleWriter{
+//		origWriter: out,
+//		Buf: bytes.NewBuffer(nil),
+//	}
+//}
+//
+//func (dw *DoubleWriter) Write(p []byte) (int, error) {
+//	n, err := dw.origWriter.Write(p)
+//	dw.Buf.Write(p)
+//
+//	return n, err
+//}
+
+type WatchReader struct {
+	origReader io.Reader
 	Buf        *bytes.Buffer
 }
 
-func NewDW(out io.Writer) *DoubleWriter {
-	return &DoubleWriter{
-		origWriter: out,
+func NewWR(in io.Reader) *WatchReader {
+	return &WatchReader{
+		origReader: in,
 		Buf: bytes.NewBuffer(nil),
 	}
 }
 
-func (dw *DoubleWriter) Write(p []byte) (int, error) {
-	n, err := dw.origWriter.Write(p)
-	dw.Buf.Write(p)
-
+func (wr *WatchReader) Read(p []byte) (int, error) {
+	n, err := wr.origReader.Read(p)
+	if n > 0 {
+		dat := p[:n]
+		os.Stderr.Write(dat)
+		wr.Buf.Write(dat)
+	}
 	return n, err
 }
 
