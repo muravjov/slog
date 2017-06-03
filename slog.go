@@ -336,7 +336,10 @@ func ProcessStream(in io.Reader) {
 	// but every crash starts like that:
 	//    panic: <real err>\n
 	// see printpanics()
-	// :TODO: parse <real err> and add it to message
+
+	// :TODO: for debugging purposes add prints if _SLOG_WATCHER_DEBUG=true
+	// e.g. systemd kills all processes by default, by KillMode=control-group
+	//fmt.Fprintln(os.Stderr, "ProcessStream1")
 
 	wr := NewWR(in)
 	goroutines, err := stack.ParseDump(wr, ioutil.Discard)

@@ -48,11 +48,15 @@ func main() {
 	//}
 
 	sleepFail := flag.BoolP("sleep-fail", "", false, "sleep and fail instead of http server")
+	watcherStderr := flag.StringP("watcher-stderr", "", "", "where to redirect stderr")
+
 	flag.Parse()
 
 	dsn := flag.Arg(0) //os.Args[1]
 	//errFileName := "/tmp/watcher"
-	errFileName := ""
+	//errFileName := ""
+	errFileName := *watcherStderr
+
 	slog.StartWatcher(dsn, errFileName)
 
 	if *sleepFail {

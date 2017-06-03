@@ -1,0 +1,14 @@
+[Unit]
+Description=slog-app
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/root/slog-app <sentry dsn>
+Restart=always
+# control-group and mixed mode just kills watcher, see unit_kill_context()
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
