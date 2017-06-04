@@ -10,8 +10,7 @@ import (
 	"math/rand"
 	"fmt"
 	"bytes"
-	"io/ioutil"
-	"io"
+	"github.com/erikdubbelboer/gspt"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -110,7 +109,7 @@ func TestSlog(t *testing.T) {
 		fmt.Println(RandStringBytes(8))
 	}
 
-	if true {
+	if false {
 		stdErr := `
 panic: runtime error: integer divide by zero
 
@@ -128,6 +127,14 @@ created by main.main.func1
 
 		ProcessStream(in)
 	}
+
+	if true {
+		//SetProcessName("ggg")
+		gspt.SetProcTitle("ggg")
+		i := 0
+		_ = i
+	}
+
 }
 
 // :REFACTOR:

@@ -19,6 +19,8 @@ import (
 	"github.com/maruel/panicparse/stack"
 	"io/ioutil"
 	"os/signal"
+	"reflect"
+	"github.com/erikdubbelboer/gspt"
 )
 
 func ForceException() {
@@ -254,6 +256,17 @@ func HookStandardLog() {
 	log.SetOutput(&SentryLog{})
 }
 
+// it's hack,
+// use gspt.SetProcTitle()
+func SetProcessName(name string) {
+	argv0str := (*reflect.StringHeader)(unsafe.Pointer(&os.Args[0]))
+	argv0 := (*[1 << 30]byte)(unsafe.Pointer(argv0str.Data))[:argv0str.Len]
+
+	n := copy(argv0, name)
+	if n < len(argv0) {
+		argv0[n] = 0
+	}
+}
 
 func init() {
 	// os.LookupEnv()
@@ -277,6 +290,13 @@ func init() {
 		}()
 
 		MustSetDSN(dsn)
+
+		s := fmt.Sprintf("Go watcher for pid: %d", os.Getppid())
+		//log.Print(s)
+
+		//os.Args[0] = fmt.Sprintf("Go watcher for pid: %d", os.Getppid())
+		//SetProcessName(s)
+		gspt.SetProcTitle(s)
 
 		ProcessStream(os.Stdin)
 
