@@ -18,6 +18,7 @@ import (
 	"io"
 	"github.com/maruel/panicparse/stack"
 	"io/ioutil"
+	"os/signal"
 )
 
 func ForceException() {
@@ -259,6 +260,22 @@ func init() {
 	dsn := os.Getenv("_SLOG_WATCHER")
 
 	if dsn != "" {
+		go func() {
+			// Do not let systemd or so stop the watcher before event is submitted.
+
+			// https://golang.org/pkg/os/signal/#example_Notify
+			c := make(chan os.Signal, 1)
+			// A SIGHUP, SIGINT, or SIGTERM signal causes the program to exit =>
+			// so handle them.
+			signal.Notify(c, os.Interrupt)
+			signal.Notify(c, syscall.SIGTERM)
+			signal.Notify(c, syscall.SIGHUP)
+
+			for s := range c {
+				log.Printf("Watcher ignored signal: %s", s)
+			}
+		}()
+
 		MustSetDSN(dsn)
 
 		ProcessStream(os.Stdin)
