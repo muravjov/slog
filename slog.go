@@ -134,6 +134,9 @@ func CaptureMessageAndWait(message string, tags map[string]string, rec *logging.
 	return eventID
 }
 
+// just like Python' raven
+var sentryLogger = logging.MustGetLogger("sentry.errors")
+
 func CaptureAndWait(message string, stacktrace *raven.Stacktrace, tags map[string]string, level raven.Severity) string {
 	client := raven.DefaultClient
 
@@ -155,7 +158,11 @@ func CaptureAndWait(message string, stacktrace *raven.Stacktrace, tags map[strin
 	packet.Level = level
 
 	eventID, ch := client.Capture(packet, tags)
-	<-ch
+	err := <-ch
+
+	if err != nil {
+		sentryLogger.Error(err)
+	}
 
 	return eventID
 }
@@ -173,7 +180,7 @@ func CaptureErrorAndWait(message string, tags map[string]string, calldepth int, 
 
 
 func (l *SentryBackend) Log(level logging.Level, calldepth int, rec *logging.Record) error {
-	if level <= logging.WARNING {
+	if (level <= logging.WARNING) && (rec.Module != "sentry.errors") {
 		cd := calldepth+2
 
 		//s := rec.Formatted(calldepth+2)
@@ -462,9 +469,16 @@ func (wr *WatchReader) Read(p []byte) (int, error) {
 }
 
 func MustSetDSN(dsn string) {
-	// :REFACTOR:
 	err := raven.SetDSN(dsn)
 	if err != nil {
 		log.Fatalf("Bad Sentry DSN '%s': %s", dsn, err)
 	}
+
+	// we don't want to get stuck if not working DSN
+	// 5 seconds should be enough to send to Sentry
+	ht, ok := raven.DefaultClient.Transport.(*raven.HTTPTransport)
+	if ok {
+		ht.Timeout = time.Second * 5
+	}
 }
+

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"bytes"
 	"github.com/erikdubbelboer/gspt"
+	"net/http"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -32,6 +33,7 @@ func RandStringBytes(n int) string {
 
 func TestSlog(t *testing.T) {
 	dsn := os.Args[2]
+	//dsn = "http://aaa:bbb@fr2-v-cdn-hop-1.be.core.pw:994/2"
 	MustSetDSN(dsn)
 
 
@@ -69,6 +71,13 @@ func TestSlog(t *testing.T) {
 	}
 
 	if false {
+		http.DefaultClient.Timeout = time.Second * 5
+		resp, err := http.Get("http://fr2-v-cdn-hop-1.be.core.pw:994/ggg")
+		_ = resp
+		fmt.Println(err)
+	}
+
+	if false {
 		log.Println("msg1")
 
 		HookStandardLog()
@@ -78,11 +87,12 @@ func TestSlog(t *testing.T) {
 		log.Fatal("fatal msg: ", RandStringBytes(8))
 	}
 
-	if false {
+	if true {
 		// :REFACTOR:
 		logger := logging.MustGetLogger("example")
+		stderrBackend := logging.NewLogBackend(os.Stderr, "", log.LstdFlags)
 		backend := NewSB()
-		logging.SetBackend(backend)
+		logging.SetBackend(stderrBackend, backend)
 
 		//logger.Warningf("warning: %s", RandStringBytes(8))
 
@@ -109,7 +119,7 @@ func TestSlog(t *testing.T) {
 		fmt.Println(RandStringBytes(8))
 	}
 
-	if true {
+	if false {
 		stdErr := `
 panic: runtime error: integer divide by zero
 
