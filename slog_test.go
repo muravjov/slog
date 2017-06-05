@@ -109,7 +109,7 @@ func TestSlog(t *testing.T) {
 		fmt.Println(RandStringBytes(8))
 	}
 
-	if false {
+	if true {
 		stdErr := `
 panic: runtime error: integer divide by zero
 
@@ -128,7 +128,7 @@ created by main.main.func1
 		ProcessStream(in)
 	}
 
-	if true {
+	if false {
 		//SetProcessName("ggg")
 		gspt.SetProcTitle("ggg")
 		i := 0

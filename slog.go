@@ -268,6 +268,10 @@ func SetProcessName(name string) {
 	}
 }
 
+func WatcheePid() int {
+	return os.Getppid()
+}
+
 func init() {
 	// os.LookupEnv()
 	dsn := os.Getenv("_SLOG_WATCHER")
@@ -291,7 +295,7 @@ func init() {
 
 		MustSetDSN(dsn)
 
-		s := fmt.Sprintf("Go watcher for pid: %d", os.Getppid())
+		s := fmt.Sprintf("Go watcher for pid: %d", WatcheePid())
 		//log.Print(s)
 
 		//os.Args[0] = fmt.Sprintf("Go watcher for pid: %d", os.Getppid())
@@ -412,7 +416,7 @@ func ProcessStream(in io.Reader) {
 
 		accOut := wr.Buf.String()
 
-		CaptureAndWait(fmt.Sprintf("Post-mortem: %s", accOut), stacktrace, nil, raven.FATAL)
+		CaptureAndWait(fmt.Sprintf("Post-mortem %v, pid=%d: %s", os.Args, WatcheePid(), accOut), stacktrace, nil, raven.FATAL)
 	}
 }
 
