@@ -70,11 +70,13 @@ func TestSlog(t *testing.T) {
 			RandStringBytes(8))
 	}
 
-	if false {
+	if true {
 		http.DefaultClient.Timeout = time.Second * 5
 		resp, err := http.Get("http://fr2-v-cdn-hop-1.be.core.pw:994/ggg")
+
 		_ = resp
 		fmt.Println(err)
+		CheckError(err)
 	}
 
 	if false {
@@ -87,7 +89,7 @@ func TestSlog(t *testing.T) {
 		log.Fatal("fatal msg: ", RandStringBytes(8))
 	}
 
-	if true {
+	if false {
 		// :REFACTOR:
 		logger := logging.MustGetLogger("example")
 		stderrBackend := logging.NewLogBackend(os.Stderr, "", log.LstdFlags)
