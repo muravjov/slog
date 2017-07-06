@@ -232,11 +232,12 @@ func NewSB() logging.LeveledBackend {
 //
 
 type SentryLog struct {
+	Writer io.Writer
 }
 
 // to emulate standard logger
 //var std = log.New(os.Stderr, "", log.LstdFlags)
-var std = log.New(os.Stderr, "", 0)
+//var std = log.New(os.Stderr, "", 0)
 
 func SkipSpace(s string) string {
 	idx := strings.IndexRune(s, ' ')
@@ -248,7 +249,7 @@ func SkipSpace(s string) string {
 
 // io.Writer interface for log
 func (w *SentryLog) Write(p []byte) (n int, err error) {
-	n, err = os.Stderr.Write(p)
+	n, err = w.Writer.Write(p)
 
 	s := string(p)
 	// because of log.LstdFlags we need to skip 2 spaces
@@ -259,8 +260,14 @@ func (w *SentryLog) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
-func HookStandardLog() {
-	log.SetOutput(&SentryLog{})
+func HookStandardLog(w io.Writer) {
+	if w == nil {
+		w = os.Stderr
+	}
+
+	log.SetOutput(&SentryLog{
+		Writer: w,
+	})
 }
 
 // it's hack,
@@ -321,6 +328,13 @@ func CheckFatal(format string, err error) {
 	}
 }
 
+func OpenLog(errFileName string) *os.File {
+	logFile, err := os.OpenFile(errFileName,
+		os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0640))
+	CheckFatal("Can't open: %s", err)
+	return logFile
+}
+
 func StartWatcher(dsn string, errFileName string) {
 	cx, err := osext.Executable()
 	CheckFatal("osext.Executable(): %s", err)
@@ -336,10 +350,7 @@ func StartWatcher(dsn string, errFileName string) {
 		//logFile, err = os.Open(os.DevNull)
 		//CheckFatal("Can't open: %s", err)
 	} else {
-		logFile, err = os.OpenFile(errFileName,
-			os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0640))
-		CheckFatal("Can't open: %s", err)
-
+		logFile = OpenLog(errFileName)
 		errFile = logFile
 	}
 	defer func() {
