@@ -37,3 +37,8 @@ slog.UncontrolledCrash.func1()
 created by slog.UncontrolledCrash
 	/slog.go:37 +0x35
 ```
+
+# Oneshot for simple logging
+If you need to log errors to a local file log and to Sentry and you use package log for logging, e.g. in a simple utility, then take a look at this handy API:
+
+	slog.SetupLog(logPath, sentryDsn)
