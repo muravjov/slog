@@ -493,3 +493,21 @@ func MustSetDSN(dsn string) {
 	}
 }
 
+func SetupLog(logPath string, dsn string) {
+	var logWriter io.Writer
+	if logPath != "" {
+		logWriter = OpenLog(logPath)
+	}
+
+	if dsn != "" {
+		MustSetDSN(dsn)
+
+		HookStandardLog(logWriter)
+		StartWatcher(dsn, logPath)
+	} else {
+		if logWriter != nil {
+			// :TODO: log panics to logPath
+			log.SetOutput(logWriter)
+		}
+	}
+}
