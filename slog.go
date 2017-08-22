@@ -21,6 +21,9 @@ import (
 	"os/signal"
 	"reflect"
 	"github.com/erikdubbelboer/gspt"
+	"github.com/sirupsen/logrus"
+	"github.com/evalphobia/logrus_sentry"
+	flag "github.com/spf13/pflag"
 )
 
 func ForceException() {
@@ -509,5 +512,59 @@ func SetupLog(logPath string, dsn string) {
 			// :TODO: log panics to logPath
 			log.SetOutput(logWriter)
 		}
+	}
+}
+
+func SetupLogrus(logPath string, dsn string) {
+	// :REFACTOR:
+	var logWriter io.Writer
+	if logPath != "" {
+		logWriter = OpenLog(logPath)
+	}
+
+	// *
+	if logWriter != nil {
+		logrus.SetFormatter(&logrus.TextFormatter{DisableColors: true})
+		logrus.SetOutput(logWriter)
+	}
+
+	// *
+	if dsn != "" {
+		MustSetDSN(dsn)
+
+		// :TRICKY: with right timeout 5 sec
+		//hook, err := logrus_sentry.NewSentryHook(dsn, []logrus.Level{
+		hook, err := logrus_sentry.NewWithClientSentryHook(raven.DefaultClient, []logrus.Level{
+			logrus.PanicLevel,
+			logrus.FatalLevel,
+			logrus.ErrorLevel,
+			logrus.WarnLevel,
+		})
+		CheckFatal("Can't create logrus_sentry.SentryHook: ", err)
+
+		// :TODO: now Sentry errors are being logged to os.Stderr,- "Failed to fire hook: ..."
+		// log to a local file, if needed
+		hook.Timeout = time.Second * (5 + 1)
+		hook.StacktraceConfiguration.Enable = true
+
+		logrus.AddHook(hook)
+
+		StartWatcher(dsn, logPath)
+	}
+}
+
+func AddForceErrorOption() *string {
+	return flag.StringP("force-error", "", "no", "emulate error for logging {no, error, panic}, default = no")
+}
+
+func RunForceErrorOption(forceError string, errorFunc func(string)) {
+	switch forceError {
+	case "no":
+	case "error":
+		errorFunc("--force-error")
+	case "panic":
+		ForceException()
+	default:
+		log.Fatalf("--force-error' bad choice: %s is not in [no, error, panic]", forceError)
 	}
 }

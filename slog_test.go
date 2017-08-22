@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"github.com/erikdubbelboer/gspt"
 	"net/http"
+	"github.com/sirupsen/logrus"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -70,7 +71,7 @@ func TestSlog(t *testing.T) {
 			RandStringBytes(8))
 	}
 
-	if true {
+	if false {
 		http.DefaultClient.Timeout = time.Second * 5
 		resp, err := http.Get("http://fr2-v-cdn-hop-1.be.core.pw:994/ggg")
 
@@ -82,7 +83,7 @@ func TestSlog(t *testing.T) {
 	if false {
 		log.Println("msg1")
 
-		HookStandardLog()
+		HookStandardLog(nil)
 
 		//log.Println("msg2")
 
@@ -147,6 +148,13 @@ created by main.main.func1
 		_ = i
 	}
 
+	if false {
+		//SetupLogrus("logrus-test.log", dsn)
+		SetupLogrus("logrus-test.log", "")
+
+		logrus.Error("ggg")
+		//logrus.Warning("ggg2")
+	}
 }
 
 // :REFACTOR:
