@@ -547,6 +547,13 @@ func SetupLogrus(logPath string, dsn string) {
 		hook.Timeout = time.Second * (5 + 1)
 		hook.StacktraceConfiguration.Enable = true
 
+		// :TRICKY: logrus doesn't keep original format and args; instead it does fmt.Sprintf(format, args...)
+		// several times, so we have to turn on stackraces for warnings also
+		// :TODO: fix upstream:
+		// - by correcting func (hook *SentryHook) Fire(entry *logrus.Entry)
+		// - making packet like packet := raven.NewPacket(message, &raven.Message{format, args})
+		hook.StacktraceConfiguration.Level = logrus.WarnLevel
+
 		logrus.AddHook(hook)
 
 		StartWatcher(dsn, logPath)

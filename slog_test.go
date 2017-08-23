@@ -65,9 +65,12 @@ func TestSlog(t *testing.T) {
 		// and without sources errors in the same functions will be aggregated
 		// :TODO: append Message interface like for CaptureMessageAndWait()
 
-		logger.Errorf("error - %s", RandStringBytes(8))
+		//logFunc := logger.Errorf
+		logFunc := logger.Warningf
 
-		logger.Errorf("another error - %s",
+		logFunc("error - %s", RandStringBytes(8))
+
+		logFunc("another error - %s",
 			RandStringBytes(8))
 	}
 
@@ -150,10 +153,10 @@ created by main.main.func1
 
 	if false {
 		//SetupLogrus("logrus-test.log", dsn)
-		SetupLogrus("logrus-test.log", "")
+		SetupLogrus("logrus-test.log", dsn)
 
-		logrus.Error("ggg")
-		//logrus.Warning("ggg2")
+		logrus.Warnf("Random text simulate: %s", RandStringBytes(8))
+		//logrus.Errorf("Random text simulate: %s", RandStringBytes(8))
 	}
 }
 
