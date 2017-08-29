@@ -2,9 +2,9 @@ package main
 
 import (
 	"time"
-	"slog"
 	flag "github.com/spf13/pflag"
 	"net/http"
+	"github.com/G-Core/slog"
 )
 
 func main() {
