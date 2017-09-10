@@ -1,18 +1,18 @@
 package slog
 
 import (
-	"time"
+	"bytes"
+	"fmt"
+	"github.com/erikdubbelboer/gspt"
+	"github.com/getsentry/raven-go"
+	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
+	"log"
+	"math/rand"
+	"net/http"
 	"os"
 	"testing"
-	"github.com/op/go-logging"
-	"log"
-	"github.com/getsentry/raven-go"
-	"math/rand"
-	"fmt"
-	"bytes"
-	"github.com/erikdubbelboer/gspt"
-	"net/http"
-	"github.com/sirupsen/logrus"
+	"time"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -36,7 +36,6 @@ func TestSlog(t *testing.T) {
 	dsn := os.Args[2]
 	//dsn = "http://aaa:bbb@fr2-v-cdn-hop-1.be.core.pw:994/2"
 	MustSetDSN(dsn)
-
 
 	if false {
 		//go ForceException()
@@ -113,10 +112,10 @@ func TestSlog(t *testing.T) {
 		}
 
 		logger.Errorf("Can't post status: %s, %+v", "502", Status{
-			Vhost: "test.ru",
-			Node: "test-node",
+			Vhost:  "test.ru",
+			Node:   "test-node",
 			Status: "failed",
-			Error: RandStringBytes(8),
+			Error:  RandStringBytes(8),
 		})
 	}
 
@@ -167,7 +166,7 @@ func CheckError(err error) {
 	}
 }
 
-func Assert(b bool)  {
+func Assert(b bool) {
 	if !b {
 		panic("Assertion error")
 	}

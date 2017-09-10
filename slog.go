@@ -1,29 +1,29 @@
 package slog
 
 import (
-	"github.com/op/go-logging"
-	"log"
-	"os"
-	"strings"
-	"github.com/getsentry/raven-go"
 	"bytes"
 	"errors"
-	"runtime"
-	"path"
-	"unsafe"
-	"time"
 	"fmt"
-	"github.com/kardianos/osext"
-	"syscall"
-	"io"
-	"github.com/maruel/panicparse/stack"
-	"io/ioutil"
-	"os/signal"
-	"reflect"
 	"github.com/erikdubbelboer/gspt"
-	"github.com/sirupsen/logrus"
 	"github.com/evalphobia/logrus_sentry"
+	"github.com/getsentry/raven-go"
+	"github.com/kardianos/osext"
+	"github.com/maruel/panicparse/stack"
+	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
 	flag "github.com/spf13/pflag"
+	"io"
+	"io/ioutil"
+	"log"
+	"os"
+	"os/signal"
+	"path"
+	"reflect"
+	"runtime"
+	"strings"
+	"syscall"
+	"time"
+	"unsafe"
 )
 
 func ForceException() {
@@ -120,7 +120,10 @@ func CaptureMessageAndWait(message string, tags map[string]string, rec *logging.
 		key = *lRec.fmt
 	}
 
-	packet := raven.NewPacket(message, &raven.Message{key, rec.Args})
+	packet := raven.NewPacket(message, &raven.Message{
+		Message: key,
+		Params:  rec.Args,
+	})
 
 	if ok {
 		extra := packet.Extra
@@ -181,10 +184,9 @@ func CaptureErrorAndWait(message string, tags map[string]string, calldepth int, 
 	return CaptureAndWait(message, stacktrace, tags, level)
 }
 
-
 func (l *SentryBackend) Log(level logging.Level, calldepth int, rec *logging.Record) error {
 	if (level <= logging.WARNING) && (rec.Module != "sentry.errors") {
-		cd := calldepth+2
+		cd := calldepth + 2
 
 		//s := rec.Formatted(calldepth+2)
 		buf := new(bytes.Buffer)
@@ -368,19 +370,19 @@ func StartWatcher(dsn string, errFileName string) {
 	CheckFatal("os.Pipe(): %s", err)
 
 	f := []*os.File{
-		in,          // (0) stdin
-		os.Stdout,   // (1) stdout
-		errFile,     // (2) stderr
+		in,        // (0) stdin
+		os.Stdout, // (1) stdout
+		errFile,   // (2) stderr
 	}
 
 	attr := &os.ProcAttr{
 		//Dir:   d.WorkDir,
 		Env:   env,
 		Files: f,
-		Sys: &syscall.SysProcAttr{
-			//Chroot:     d.Chroot,
-			//Credential: d.Credential,
-			//Setsid:     true,
+		Sys:   &syscall.SysProcAttr{
+		//Chroot:     d.Chroot,
+		//Credential: d.Credential,
+		//Setsid:     true,
 		},
 	}
 
@@ -421,19 +423,19 @@ func ProcessStream(in io.Reader) {
 			f := call.Func
 			// NewStacktraceFrame
 			frame := &raven.StacktraceFrame{
-				Filename:     call.SourcePath,
+				Filename: call.SourcePath,
 				Function: f.Name(),
-				Module: f.PkgName(),
+				Module:   f.PkgName(),
 
 				AbsolutePath: call.SourcePath,
-				Lineno: call.Line,
-				InApp: false,
+				Lineno:       call.Line,
+				InApp:        false,
 			}
 
 			frames = append(frames, frame)
 		}
 
-		stacktrace := &raven.Stacktrace{frames}
+		stacktrace := &raven.Stacktrace{Frames: frames}
 
 		accOut := wr.Buf.String()
 
@@ -468,7 +470,7 @@ type WatchReader struct {
 func NewWR(in io.Reader) *WatchReader {
 	return &WatchReader{
 		origReader: in,
-		Buf: bytes.NewBuffer(nil),
+		Buf:        bytes.NewBuffer(nil),
 	}
 }
 

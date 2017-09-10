@@ -1,10 +1,10 @@
 package main
 
 import (
-	"time"
+	"github.com/G-Core/slog"
 	flag "github.com/spf13/pflag"
 	"net/http"
-	"github.com/G-Core/slog"
+	"time"
 )
 
 func main() {
@@ -65,7 +65,7 @@ func main() {
 		time.Sleep(1 * time.Second)
 		//_ = time.Sleep
 	} else {
-		handler := func (w http.ResponseWriter, r *http.Request) {
+		handler := func(w http.ResponseWriter, r *http.Request) {
 			slog.UncontrolledCrash()
 		}
 
