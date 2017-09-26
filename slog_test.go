@@ -93,6 +93,13 @@ func TestSlog(t *testing.T) {
 	}
 
 	if false {
+		//dsn := ""
+		SetupLog("log-test.log", dsn)
+
+		log.Printf("Error msg: %s", RandStringBytes(8))
+	}
+
+	if false {
 		// :REFACTOR:
 		logger := logging.MustGetLogger("example")
 		stderrBackend := logging.NewLogBackend(os.Stderr, "", log.LstdFlags)
@@ -117,6 +124,18 @@ func TestSlog(t *testing.T) {
 			Status: "failed",
 			Error:  RandStringBytes(8),
 		})
+	}
+
+	if false {
+		//dsn := ""
+		SetupGoLogging("go-logging-test.log", dsn, true)
+
+		logger := logging.MustGetLogger("example")
+		logger.Errorf("Error msg: %s", RandStringBytes(8))
+		logger.Warningf("Warning msg: %s", RandStringBytes(8))
+		logger.Debugf("Debug msg: %s", RandStringBytes(8))
+
+		log.Printf("And std error msg: %s", RandStringBytes(8))
 	}
 
 	if false {

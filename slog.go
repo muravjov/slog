@@ -498,17 +498,17 @@ func MustSetDSN(dsn string) {
 	}
 }
 
-func SetupLog(logPath string, dsn string) {
+func OpenLogOrNil(logPath string) io.Writer {
 	var logWriter io.Writer
 	if logPath != "" {
 		logWriter = OpenLog(logPath)
 	}
+	return logWriter
+}
 
-	if dsn != "" {
-		MustSetDSN(dsn)
-
+func RedirectStandardLog(logWriter io.Writer, withSentry bool) {
+	if withSentry {
 		HookStandardLog(logWriter)
-		StartWatcher(dsn, logPath)
 	} else {
 		if logWriter != nil {
 			// :TODO: log panics to logPath
@@ -517,12 +517,21 @@ func SetupLog(logPath string, dsn string) {
 	}
 }
 
-func SetupLogrus(logPath string, dsn string) {
-	// :REFACTOR:
-	var logWriter io.Writer
-	if logPath != "" {
-		logWriter = OpenLog(logPath)
+func SetupLog(logPath string, dsn string) {
+	logWriter := OpenLogOrNil(logPath)
+
+	withSentry := dsn != ""
+
+	if withSentry {
+		MustSetDSN(dsn)
+		StartWatcher(dsn, logPath)
 	}
+
+	RedirectStandardLog(logWriter, withSentry)
+}
+
+func SetupLogrus(logPath string, dsn string) {
+	logWriter := OpenLogOrNil(logPath)
 
 	// *
 	if logWriter != nil {
@@ -577,3 +586,35 @@ func RunForceErrorOption(forceError string, errorFunc func(string)) {
 		log.Fatalf("--force-error' bad choice: %s is not in [no, error, panic]", forceError)
 	}
 }
+
+// andStandardLog - hook https://golang.org/pkg/log calls also
+func SetupGoLogging(logPath string, dsn string, andStandardLog bool) {
+	var logWriter io.Writer = os.Stderr
+	if logPath != "" {
+		logWriter = OpenLog(logPath)
+	}
+
+	// *
+	fileBackend := logging.NewLogBackend(logWriter, "", log.LstdFlags)
+
+	logBackends := []logging.Backend{
+		fileBackend,
+	}
+
+	// *
+	withSentry := dsn != ""
+	if withSentry {
+		MustSetDSN(dsn)
+
+		logBackends = append(logBackends, NewSB())
+
+		StartWatcher(dsn, logPath)
+	}
+
+	logging.SetBackend(logBackends...)
+
+	if andStandardLog {
+		RedirectStandardLog(logWriter, withSentry)
+	}
+}
+
