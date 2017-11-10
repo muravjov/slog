@@ -292,10 +292,9 @@ func WatcheePid() int {
 }
 
 func init() {
-	// os.LookupEnv()
-	dsn := os.Getenv("_SLOG_WATCHER")
+	dsn, exists := os.LookupEnv("_SLOG_WATCHER")
 
-	if dsn != "" {
+	if exists {
 		go func() {
 			// Do not let systemd or so stop the watcher before event is submitted.
 
@@ -312,7 +311,9 @@ func init() {
 			}
 		}()
 
-		MustSetDSN(dsn)
+		if dsn != "" {
+			MustSetDSN(dsn)
+		}
 
 		s := fmt.Sprintf("Go watcher for pid: %d", WatcheePid())
 		//log.Print(s)
@@ -387,7 +388,7 @@ func StartWatcher(dsn string, errFileName string) {
 	}
 
 	_, err = os.StartProcess(cx, os.Args, attr)
-	CheckFatal("Can't start watcher: ", err)
+	CheckFatal("Can't start watcher: %s", err)
 
 	in.Close()
 	// redirect stderr to watcher stdin
@@ -412,6 +413,10 @@ func ProcessStream(in io.Reader) {
 	}
 
 	if len(goroutines) != 0 {
+		wp := WatcheePid()
+		// :TRICKY: that goes to os.Stderr like in WatchReader.Read()
+		log.Printf("Post-mortem detected, %v, pid=%d", os.Args, wp)
+
 		failedG := goroutines[0]
 		//fmt.Println(failedG)
 
@@ -439,7 +444,7 @@ func ProcessStream(in io.Reader) {
 
 		accOut := wr.Buf.String()
 
-		CaptureAndWait(fmt.Sprintf("Post-mortem %v, pid=%d: %s", os.Args, WatcheePid(), accOut), stacktrace, nil, raven.FATAL)
+		CaptureAndWait(fmt.Sprintf("Post-mortem %v, pid=%d: %s", os.Args, wp, accOut), stacktrace, nil, raven.FATAL)
 	}
 }
 
@@ -511,7 +516,6 @@ func RedirectStandardLog(logWriter io.Writer, withSentry bool) {
 		HookStandardLog(logWriter)
 	} else {
 		if logWriter != nil {
-			// :TODO: log panics to logPath
 			log.SetOutput(logWriter)
 		}
 	}
@@ -524,8 +528,8 @@ func SetupLog(logPath string, dsn string) {
 
 	if withSentry {
 		MustSetDSN(dsn)
-		StartWatcher(dsn, logPath)
 	}
+	StartWatcher(dsn, logPath)
 
 	RedirectStandardLog(logWriter, withSentry)
 }
@@ -567,8 +571,8 @@ func SetupLogrus(logPath string, dsn string) {
 
 		logrus.AddHook(hook)
 
-		StartWatcher(dsn, logPath)
 	}
+	StartWatcher(dsn, logPath)
 }
 
 func AddForceErrorOption() *string {
@@ -595,7 +599,10 @@ func SetupGoLogging(logPath string, dsn string, andStandardLog bool) {
 	}
 
 	// *
-	fileBackend := logging.NewLogBackend(logWriter, "", log.LstdFlags)
+	// we use go-logging formatter
+	//var flag int = log.LstdFlags
+	var flag int = 0
+	fileBackend := logging.NewLogBackend(logWriter, "", flag)
 
 	logBackends := []logging.Backend{
 		fileBackend,
@@ -607,11 +614,15 @@ func SetupGoLogging(logPath string, dsn string, andStandardLog bool) {
 		MustSetDSN(dsn)
 
 		logBackends = append(logBackends, NewSB())
-
-		StartWatcher(dsn, logPath)
 	}
+	StartWatcher(dsn, logPath)
 
 	logging.SetBackend(logBackends...)
+	// time formatter is rfc3339Milli = "2006-01-02T15:04:05.999Z07:00" by default,
+	// not time.RFC3339 = "2006-01-02T15:04:05Z07:00"
+	logging.SetFormatter(logging.MustStringFormatter(
+		`%{time} %{level:.4s} %{message}`,
+	))
 
 	if andStandardLog {
 		RedirectStandardLog(logWriter, withSentry)
