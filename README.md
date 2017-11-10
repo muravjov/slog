@@ -42,3 +42,11 @@ created by slog.UncontrolledCrash
 If you need to log errors to a local file log and to Sentry and you use package [log](https://golang.org/pkg/log) for logging, e.g. in a simple utility, then take a look at this handy API:
 
 	slog.SetupLog(logPath, sentryDsn)
+	
+If you use [go-logging](https://github.com/op/go-logging):
+
+	slog.SetupGoLogging(logPath, sentryDsn, true)
+
+If you use [logrus](https://github.com/sirupsen/logrus):
+
+	slog.SetupLogrus(logPath, sentryDsn)
