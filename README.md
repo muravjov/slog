@@ -53,5 +53,6 @@ If you use [logrus](https://github.com/sirupsen/logrus):
 
 # API documentation
 https://godoc.org/github.com/G-Core/slog/sentry
+
 https://godoc.org/github.com/G-Core/slog/watcher
 
