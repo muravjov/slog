@@ -1,3 +1,6 @@
+/*
+Package watcher implements StartWatcher() function to catch Golang panics with a special watchdog process.
+*/
 package watcher
 
 import (
@@ -20,7 +23,7 @@ import (
 
 // it's hack,
 // use gspt.SetProcTitle()
-func SetProcessName(name string) {
+func setProcessName(name string) {
 	argv0str := (*reflect.StringHeader)(unsafe.Pointer(&os.Args[0]))
 	argv0 := (*[1 << 30]byte)(unsafe.Pointer(argv0str.Data))[:argv0str.Len]
 
@@ -67,7 +70,7 @@ func init() {
 		//log.Print(s)
 
 		//os.Args[0] = fmt.Sprintf("Go watcher for pid: %d", os.Getppid())
-		//SetProcessName(s)
+		//setProcessName(s)
 		gspt.SetProcTitle(s)
 
 		ProcessStream(os.Stdin)
@@ -90,6 +93,8 @@ func OpenLog(errFileName string) *os.File {
 	return logFile
 }
 
+// Starts a watchdog process to catch panics and to store them into file errFileName and
+// Sentry
 func StartWatcher(dsn string, errFileName string) {
 	cx, err := osext.Executable()
 	CheckFatal("osext.Executable(): %s", err)
