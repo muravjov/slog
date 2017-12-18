@@ -13,6 +13,8 @@ import (
 	"os"
 	"testing"
 	"time"
+	"github.com/G-Core/slog/sentry"
+	"github.com/G-Core/slog/watcher"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -35,7 +37,7 @@ func RandStringBytes(n int) string {
 func TestSlog(t *testing.T) {
 	dsn := os.Args[2]
 	//dsn = "http://aaa:bbb@fr2-v-cdn-hop-1.be.core.pw:994/2"
-	MustSetDSN(dsn)
+	sentry.MustSetDSN(dsn)
 
 	if false {
 		//go ForceException()
@@ -159,7 +161,7 @@ created by main.main.func1
 `
 		in := bytes.NewBufferString(stdErr)
 
-		ProcessStream(in)
+		watcher.ProcessStream(in)
 	}
 
 	if false {
