@@ -8,31 +8,16 @@ import (
 	"github.com/op/go-logging"
 	"github.com/sirupsen/logrus"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 	"github.com/G-Core/slog/sentry"
 	"github.com/G-Core/slog/watcher"
+	"github.com/G-Core/slog/util"
 )
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-var seedDone = false
-
-func RandStringBytes(n int) string {
-	if !seedDone {
-		seedDone = true
-		rand.Seed(time.Now().UnixNano())
-	}
-
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return string(b)
-}
+var RandStringBytes = util.RandStringBytes
 
 func TestSlog(t *testing.T) {
 	dsn := os.Args[2]
@@ -66,8 +51,8 @@ func TestSlog(t *testing.T) {
 		// and without sources errors in the same functions will be aggregated
 		// :TODO: append Message interface like for CaptureMessageAndWait()
 
-		//logFunc := logger.Errorf
-		logFunc := logger.Warningf
+		logFunc := logger.Errorf
+		//logFunc := logger.Warningf
 
 		logFunc("error - %s", RandStringBytes(8))
 
