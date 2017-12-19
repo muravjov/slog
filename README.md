@@ -11,12 +11,12 @@ Also it provides a way to catch Golang panics with a special watchdog process. F
 
 ```golang
 dsn := "https://aaa:bbb@app.getsentry.com/nnn"
-slog.MustSetDSN(dsn)
+slog.MustSetDSNAndHandler(dsn)
 
 // log package support
 slog.HookStandardLog()
 // to capture panics
-slog.StartWatcher(dsn, "")
+watcher.StartWatcher(dsn, "")
 
 // you cannot survive that, see 
 // https://github.com/golang/go/issues/20161
@@ -55,4 +55,16 @@ If you use [logrus](https://github.com/sirupsen/logrus):
 https://godoc.org/github.com/G-Core/slog/sentry
 
 https://godoc.org/github.com/G-Core/slog/watcher
+
+# sentry_prober
+*sentry_prober* is utility to test/troubleshoot Sentry logging:
+
+    $ sentry_prober --help
+    Usage of ./sentry_prober:
+          --message string   message to send (default "sentry-prober")
+          --random           add random string to message
+          --warning          warning (without stacktrace) vs error
+          --watcher          send message via watcher
+    $ sentry_prober https://user:password@sentry.io/ID
+    Sending "sentry-prober"
 
