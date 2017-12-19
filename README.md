@@ -50,3 +50,9 @@ If you use [go-logging](https://github.com/op/go-logging):
 If you use [logrus](https://github.com/sirupsen/logrus):
 
 	slog.SetupLogrus(logPath, sentryDsn)
+
+# API documentation
+https://godoc.org/github.com/G-Core/slog/sentry
+
+https://godoc.org/github.com/G-Core/slog/watcher
+
