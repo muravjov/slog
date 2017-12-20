@@ -61,10 +61,13 @@ https://godoc.org/github.com/G-Core/slog/watcher
 
     $ sentry_prober --help
     Usage of ./sentry_prober:
-          --message string   message to send (default "sentry-prober")
-          --random           add random string to message
-          --warning          warning (without stacktrace) vs error
-          --watcher          send message via watcher
-    $ sentry_prober https://user:password@sentry.io/ID
-    Sending "sentry-prober"
+          --message string     message to send (default "sentry-prober")
+          --random             add random string to message
+          --transport string   transport to use (not for --watcher): default|raven-go|slog|curl-print|curl-execute (default "default")
+          --warning            warning (without stacktrace) vs error
+          --watcher            send message via watcher
 
+    $ sentry_prober --transport curl-execute --warning https://user:password@sentry.io/ID
+    Sending "sentry-prober"...
+    curl -X POST -H 'X-Sentry-Auth: Sentry sentry_version=4, sentry_key=key, sentry_secret=key' -H 'User-Agent: slog/1.0' -H 'Content-Type: application/json' https://sentry.io/api/ID/store/ --data-binary \{\"message\":\"sentry-prober\"}
+    {"id":"uuid"}Event ID: uuid
