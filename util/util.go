@@ -21,3 +21,15 @@ func RandStringBytes(n int) string {
 	}
 	return string(b)
 }
+
+func CheckError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+func Assert(b bool) {
+	if !b {
+		panic("Assertion error")
+	}
+}

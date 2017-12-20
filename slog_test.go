@@ -66,7 +66,7 @@ func TestSlog(t *testing.T) {
 
 		_ = resp
 		fmt.Println(err)
-		CheckError(err)
+		util.CheckError(err)
 	}
 
 	if false {
@@ -165,15 +165,3 @@ created by main.main.func1
 	}
 }
 
-// :REFACTOR:
-func CheckError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-func Assert(b bool) {
-	if !b {
-		panic("Assertion error")
-	}
-}
