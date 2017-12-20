@@ -1,4 +1,4 @@
-# Golang logging integration to Sentry
+# Golang logging integration with Sentry
 
 Package slog implements way to log to [Sentry](https://github.com/getsentry/sentry) along with such a logging libraries as standard package [log](https://golang.org/pkg/log) and [go-logging](https://github.com/op/go-logging).
 Also it provides a way to catch Golang panics with a special watchdog process. For logging to Sentry [raven-go](github.com/getsentry/raven-go) library is used.
