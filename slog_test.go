@@ -3,23 +3,27 @@ package slog
 import (
 	"bytes"
 	"fmt"
-	"github.com/erikdubbelboer/gspt"
-	"github.com/getsentry/raven-go"
-	"github.com/op/go-logging"
-	"github.com/sirupsen/logrus"
 	"log"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
 	"github.com/G-Core/slog/sentry"
-	"github.com/G-Core/slog/watcher"
 	"github.com/G-Core/slog/util"
+	slogV2 "github.com/G-Core/slog/v2"
+	"github.com/G-Core/slog/watcher"
+	"github.com/erikdubbelboer/gspt"
+	"github.com/getsentry/raven-go"
+	"github.com/op/go-logging"
+	"github.com/sirupsen/logrus"
 )
 
 var RandStringBytes = util.RandStringBytes
 
 func TestSlog(t *testing.T) {
+	t.SkipNow()
+
 	dsn := os.Args[2]
 	//dsn = "http://aaa:bbb@fr2-v-cdn-hop-1.be.core.pw:994/2"
 	sentry.MustSetDSN(dsn)
@@ -41,7 +45,7 @@ func TestSlog(t *testing.T) {
 		logger.Errorf("error: %s", "arg")
 
 		//backend := logging.NewLogBackend(os.Stdout, "prefix", 0)
-		backend := NewSB()
+		backend := slogV2.NewSB()
 		logging.SetBackend(backend)
 
 		// :TRICKY: stacktrace aggregation = frames aggregation is being done by
@@ -72,7 +76,7 @@ func TestSlog(t *testing.T) {
 	if false {
 		log.Println("msg1")
 
-		HookStandardLog(nil)
+		slogV2.HookStandardLog(nil)
 
 		//log.Println("msg2")
 
@@ -90,7 +94,7 @@ func TestSlog(t *testing.T) {
 		// :REFACTOR:
 		logger := logging.MustGetLogger("example")
 		stderrBackend := logging.NewLogBackend(os.Stderr, "", log.LstdFlags)
-		backend := NewSB()
+		backend := slogV2.NewSB()
 		logging.SetBackend(stderrBackend, backend)
 
 		//logger.Warningf("warning: %s", RandStringBytes(8))
@@ -146,7 +150,7 @@ created by main.main.func1
 `
 		in := bytes.NewBufferString(stdErr)
 
-		watcher.ProcessStream(in)
+		watcher.ProcessStream(in, 0, nil)
 	}
 
 	if false {
@@ -164,4 +168,3 @@ created by main.main.func1
 		//logrus.Errorf("Random text simulate: %s", RandStringBytes(8))
 	}
 }
-

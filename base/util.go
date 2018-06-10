@@ -1,8 +1,10 @@
-package util
+package base
 
 import (
-	"time"
+	"log"
 	"math/rand"
+	"os"
+	"time"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -32,4 +34,17 @@ func Assert(b bool) {
 	if !b {
 		panic("Assertion error")
 	}
+}
+
+func CheckFatal(format string, err error) {
+	if err != nil {
+		log.Fatalf(format, err)
+	}
+}
+
+func OpenLog(errFileName string) *os.File {
+	logFile, err := os.OpenFile(errFileName,
+		os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.FileMode(0640))
+	CheckFatal("Can't open: %s", err)
+	return logFile
 }
