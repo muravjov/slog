@@ -36,6 +36,8 @@ func init() {
 	dsn, exists := os.LookupEnv("_SLOG_WATCHER")
 
 	if exists {
+		watcheePid := WatcheePid()
+
 		go func() {
 			// Do not let systemd or so stop the watcher before event is submitted.
 
@@ -46,6 +48,15 @@ func init() {
 			signal.Notify(c, os.Interrupt)
 			signal.Notify(c, syscall.SIGTERM)
 			signal.Notify(c, syscall.SIGHUP)
+
+			// now we are safe from SIGTERM => let's notice watchee to go on
+			if e := syscall.Kill(watcheePid, syscall.SIGUSR1); e != nil {
+				if e == syscall.ESRCH {
+					log.Println("Somehow watchee has already finished")
+				} else {
+					log.Fatalln("Can't signal to watchee: %s", e)
+				}
+			}
 
 			for s := range c {
 				log.Printf("Watcher ignored signal: %s", s)
@@ -61,7 +72,6 @@ func init() {
 			})
 		}
 
-		watcheePid := WatcheePid()
 		s := fmt.Sprintf("Go watcher for pid: %d", watcheePid)
 		//log.Print(s)
 
@@ -123,8 +133,18 @@ func StartWatcher(dsn string, errFileName string) {
 		},
 	}
 
+	// we need to wait for the signal from watcher;
+	// otherwise we may fail too early before watcher blocks itself from SIGTERM,
+	// and SIGTERM kills it before it processed stderr from us, and so
+	// it will not save logs
+	waitChan := make(chan os.Signal, 1)
+	signal.Notify(waitChan, syscall.SIGUSR1)
+
 	_, err = os.StartProcess(cx, os.Args, attr)
 	base.CheckFatal("Can't start watcher: %s", err)
+
+	<-waitChan
+	signal.Stop(waitChan)
 
 	in.Close()
 	// redirect stderr to watcher stdin
