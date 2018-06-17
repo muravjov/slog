@@ -1,24 +1,28 @@
 package main
 
 import (
-	flag "github.com/spf13/pflag"
-	"log"
-	"github.com/G-Core/slog/sentry"
-	"github.com/G-Core/slog"
-	"github.com/getsentry/raven-go"
 	"fmt"
-	"github.com/G-Core/slog/util"
-	"github.com/G-Core/slog/watcher"
-	"net/http"
+	"log"
+
+	"bytes"
+	"compress/zlib"
+	"encoding/base64"
 	"io"
 	"io/ioutil"
-	"bytes"
-	"encoding/base64"
-	"compress/zlib"
-	"github.com/kballard/go-shellquote"
-	"strings"
-	"os/exec"
+	"net/http"
 	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/G-Core/slog"
+	"github.com/G-Core/slog/base"
+	"github.com/G-Core/slog/sentry"
+	slogV2 "github.com/G-Core/slog/v2"
+	"github.com/getsentry/raven-go"
+	flag "github.com/spf13/pflag"
+
+	"github.com/G-Core/slog/watcher"
+	"github.com/kballard/go-shellquote"
 	"github.com/pkg/errors"
 )
 
@@ -49,7 +53,7 @@ func GotErrorEx(isError bool, format string, args ...interface{}) bool {
 
 func StartProcess(cmdStr string) *exec.Cmd {
 	cmd, err := Shell2Cmd(cmdStr)
-	if GotErrorEx(err !=nil, "Bad command string \"%s\": %s", err, cmdStr) {
+	if GotErrorEx(err != nil, "Bad command string \"%s\": %s", err, cmdStr) {
 		return nil
 	}
 
@@ -57,7 +61,7 @@ func StartProcess(cmdStr string) *exec.Cmd {
 	cmd.Stderr = os.Stderr
 	err = cmd.Start()
 
-	if GotErrorEx(err !=nil, "Can't start command \"%s\": %s", err, cmdStr) {
+	if GotErrorEx(err != nil, "Can't start command \"%s\": %s", err, cmdStr) {
 		return nil
 	}
 	return cmd
@@ -100,8 +104,8 @@ func (t *HTTPTransport) Send(url, authHeader string, packet *raven.Packet) error
 
 	headers := map[string]string{
 		"X-Sentry-Auth": authHeader,
-		"User-Agent": userAgent,
-		"Content-Type": "application/json",
+		"User-Agent":    userAgent,
+		"Content-Type":  "application/json",
 	}
 
 	switch t.Mode {
@@ -148,7 +152,7 @@ func (t *HTTPTransport) Send(url, authHeader string, packet *raven.Packet) error
 			}
 		}
 	default:
-		util.Assert(false)
+		base.Assert(false)
 	}
 
 	return nil
@@ -184,10 +188,10 @@ func main() {
 	if dsn == "" {
 		log.Fatalf("DSN argument required")
 	}
-	slog.MustSetDSNAndHandler(dsn)
+	slogV2.MustSetDSNAndHandler(dsn)
 
 	ht, ok := raven.DefaultClient.Transport.(*raven.HTTPTransport)
-	util.Assert(ok)
+	base.Assert(ok)
 
 	switch *transport {
 	case "default", "raven-go":
@@ -208,7 +212,7 @@ func main() {
 	key := message
 	var args []interface{} = nil
 	if *isRandom {
-		arg := util.RandStringBytes(8)
+		arg := base.RandStringBytes(8)
 		args = []interface{}{
 			arg,
 		}
@@ -230,7 +234,7 @@ func main() {
 		if *isWarning {
 			eventID = sentry.CaptureMessageAndWait(message, nil, 0, &raven.Message{
 				Message: key,
-				Params: args,
+				Params:  args,
 			})
 		} else {
 			eventID = sentry.CaptureErrorAndWait(message, nil, 0, raven.ERROR)
