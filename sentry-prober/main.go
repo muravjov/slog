@@ -181,6 +181,10 @@ func main() {
 	transport := flag.StringP("transport", "", "default",
 		"transport to use (not for --watcher): default|raven-go|slog|curl-print|curl-execute")
 
+	isStress := flag.BoolP("stress", "", false, "run stress test")
+	stressRPS := flag.Float64P("stress-rps", "", 5., "stress: request per second; < 0 means requesting without time throttling")
+	stressDuration := flag.Float64P("stress-duration", "", -1., "stress duration; < 0 means stress to be stopped with Ctrl+C")
+
 	flag.Parse()
 
 	// :TODO: sentry-prober --help to show required argument: DSN
@@ -188,6 +192,32 @@ func main() {
 	if dsn == "" {
 		log.Fatalf("DSN argument required")
 	}
+
+	if *isStress {
+		//fmt.Println(*stressRPS, *stressDuration)
+		rc := NewRequestContext()
+
+		event := &Event{
+			isError:  !*isWarning,
+			key:      *pMessage,
+			isRandom: *isRandom,
+		}
+
+		client := MakeClient(dsn)
+
+		jobFunc := func() {
+			eventID, err := PostSentryEvent(event, client, rc)
+			base.CheckError(err)
+			_ = eventID
+		}
+		timeElapsed := MakeStress(jobFunc, *stressRPS, *stressDuration)
+
+		rc.WaitStatsReady()
+		PrintReport(rc.Stats, timeElapsed, 10)
+
+		return
+	}
+
 	slogV2.MustSetDSNAndHandler(dsn)
 
 	ht, ok := raven.DefaultClient.Transport.(*raven.HTTPTransport)
