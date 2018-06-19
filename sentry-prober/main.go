@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"bytes"
 	"compress/zlib"
@@ -45,7 +44,7 @@ func Shell2Cmd(cmdStr string) (*exec.Cmd, error) {
 
 func GotErrorEx(isError bool, format string, args ...interface{}) bool {
 	if isError {
-		log.Printf(format, args...)
+		log.Errorf(format, args...)
 		return true
 	}
 	return false
@@ -87,7 +86,7 @@ func SpawnProcess(cmdStr string) {
 	go func() {
 		err := WaitProcess(cmd, cmdStr)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}()
 }
@@ -184,6 +183,7 @@ func main() {
 	isStress := flag.BoolP("stress", "", false, "run stress test")
 	stressRPS := flag.Float64P("stress-rps", "", 5., "stress: request per second; < 0 means requesting without time throttling")
 	stressDuration := flag.Float64P("stress-duration", "", -1., "stress duration; < 0 means stress to be stopped with Ctrl+C")
+	selfStress := flag.BoolP("stress-self", "", false, "start dummy http server at dsn")
 
 	flag.Parse()
 
@@ -194,6 +194,10 @@ func main() {
 	}
 
 	if *isStress {
+		if *selfStress {
+			go ServeDummyHTTP(dsn)
+		}
+
 		//fmt.Println(*stressRPS, *stressDuration)
 		rc := NewRequestContext()
 

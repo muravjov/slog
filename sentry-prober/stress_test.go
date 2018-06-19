@@ -104,4 +104,10 @@ func TestStress(t *testing.T) {
 
 		PrintReport(stats, timeElapsed, aggregationCount)
 	}
+
+	if false {
+		dsn := "http://aaa:bbb@localhost:9001/2"
+
+		ServeDummyHTTP(dsn)
+	}
 }
