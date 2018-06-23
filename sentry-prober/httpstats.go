@@ -5,10 +5,13 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptrace"
 	urlModule "net/url"
 	"os"
+	"reflect"
 	"sort"
 	"text/tabwriter"
+	"time"
 
 	"github.com/G-Core/slog/base"
 )
@@ -24,12 +27,52 @@ type RequestContext struct {
 	WaitStatsReady func()
 }
 
+type RequestContextOptions struct {
+	KeepAlive bool
+}
+
 func NewRequestContext() *RequestContext {
+	rco := &RequestContextOptions{
+		KeepAlive: false,
+	}
+	return NewRequestContextEx(rco)
+}
+
+func NewRequestContextEx(rco *RequestContextOptions) *RequestContext {
 	rc := &RequestContext{}
 
-	client := &http.Client{}
+	var rt http.RoundTripper
+	if !rco.KeepAlive {
+		transport := &http.Transport{}
+		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
+		base.Assert(ok)
+
+		// :TRICKY: make altered variant of http.DefaultTransport - no way to make simpler :(
+		// "assigment copies lock value (sync.Mutex)"
+		//*transport = *defaultTransport
+		toElem := func(i interface{}) reflect.Value {
+			return reflect.ValueOf(i).Elem()
+		}
+		tValue, dtValue := toElem(transport), toElem(defaultTransport)
+		// list of attrs see at http.DefaultTransport initialization
+		for _, name := range []string{
+			"Proxy",
+			"DialContext",
+			"MaxIdleConns",
+			"IdleConnTimeout",
+			"TLSHandshakeTimeout",
+			"ExpectContinueTimeout",
+		} {
+			tValue.FieldByName(name).Set(dtValue.FieldByName(name))
+		}
+		transport.DisableKeepAlives = true
+
+		rt = transport
+	}
+
+	client := &http.Client{Transport: rt}
 	rc.Client = client
-	//client.Timeout = time.Second * 5
+	client.Timeout = time.Second * 5
 
 	// for the sake of simplicity, let's choose sync.Map
 	// https://medium.com/@deckarep/the-new-kid-in-town-gos-sync-map-de24a6bf7c2c
@@ -66,17 +109,57 @@ func NewRequestContext() *RequestContext {
 	return rc
 }
 
+// :TRICKY: see http.errServerClosedIdle - upexported
+var errServerClosedIdle error
+
+func IsServerClosedIdle(err error) bool {
+	if errServerClosedIdle != nil {
+		return err == errServerClosedIdle
+	}
+
+	if err.Error() == "http: server closed idle connection" {
+		errServerClosedIdle = err
+		return true
+	}
+
+	return false
+}
+
 func ExecuteRequest(req *http.Request, rc *RequestContext) {
+	// https://blog.golang.org/http-tracing
+	gotConn, gotFirstResponseByte := false, false
+	trace := &httptrace.ClientTrace{
+		GotConn: func(connInfo httptrace.GotConnInfo) {
+			gotConn = true
+		},
+		GotFirstResponseByte: func() {
+			gotFirstResponseByte = true
+		},
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+
+	// :TRICKY: main error checking occurs in transport.go:persistConn.readLoop()
 	resp, err := rc.Client.Do(req)
 	if err != nil {
+		var hint string
 		// client.Do() wraps real error with "method: url: <real error>",
 		// it is inconveniently
 		switch errTyped := err.(type) {
 		case *urlModule.Error:
 			err = errTyped.Err
+			if err == io.EOF {
+				// so weird looking "EOF"
+				hint = fmt.Sprintf("GotConn=%t, GotFirstResponseByte=%t", gotConn, gotFirstResponseByte)
+			} else if IsServerClosedIdle(err) {
+				hint = "client stays keepalive after request, but server closes the connection"
+			}
 		}
 
-		rc.IncrStat(err.Error())
+		msg := err.Error()
+		if hint != "" {
+			msg = fmt.Sprintf("%s (%s)", msg, hint)
+		}
+		rc.IncrStat(msg)
 		return
 	}
 	defer resp.Body.Close()

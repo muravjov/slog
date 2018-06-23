@@ -189,9 +189,13 @@ forCycle:
 			jc.StartJob(jobFunc)
 		}
 	}
+	measureTime := func() float64 {
+		return time.Now().Sub(now).Seconds()
+	}
+	log.Infof("Stopped spawning jobs after %.2f seconds", measureTime())
 
 	jc.Wait()
-	return time.Now().Sub(now).Seconds()
+	return measureTime()
 }
 
 // :COPY_N_PASTE: Client

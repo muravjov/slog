@@ -184,6 +184,7 @@ func main() {
 	stressRPS := flag.Float64P("stress-rps", "", 5., "stress: request per second; < 0 means requesting without time throttling")
 	stressDuration := flag.Float64P("stress-duration", "", -1., "stress duration; < 0 means stress to be stopped with Ctrl+C")
 	selfStress := flag.BoolP("stress-self", "", false, "start dummy http server at dsn")
+	keepaliveStress := flag.BoolP("stress-keepalive", "", false, "reuse TCP connections between different HTTP requests")
 
 	flag.Parse()
 
@@ -199,7 +200,10 @@ func main() {
 		}
 
 		//fmt.Println(*stressRPS, *stressDuration)
-		rc := NewRequestContext()
+		rco := &RequestContextOptions{
+			KeepAlive: *keepaliveStress,
+		}
+		rc := NewRequestContextEx(rco)
 
 		event := &Event{
 			isError:  !*isWarning,
