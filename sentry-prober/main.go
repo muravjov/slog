@@ -180,11 +180,13 @@ func main() {
 	transport := flag.StringP("transport", "", "default",
 		"transport to use (not for --watcher): default|raven-go|slog|curl-print|curl-execute")
 
-	isStress := flag.BoolP("stress", "", false, "run stress test")
-	stressRPS := flag.Float64P("stress-rps", "", 5., "stress: request per second; < 0 means requesting without time throttling")
-	stressDuration := flag.Float64P("stress-duration", "", -1., "stress duration; < 0 means stress to be stopped with Ctrl+C")
-	selfStress := flag.BoolP("stress-self", "", false, "start dummy http server at dsn")
-	keepaliveStress := flag.BoolP("stress-keepalive", "", false, "reuse TCP connections between different HTTP requests")
+	isStress := flag.Bool("stress", false, "run stress test")
+	stressRPS := flag.Float64("stress-rps", 5., "stress: request per second; < 0 means requesting without time throttling")
+	stressDuration := flag.Float64("stress-duration", -1., "stress duration; < 0 means stress to be stopped with Ctrl+C")
+	stressReqNumber := flag.Int("stress-request-number", -1,
+		"N >=0 means direct stress mode \"for range N {StartJob()}\"")
+	selfStress := flag.Bool("stress-self", false, "start dummy http server at dsn")
+	keepaliveStress := flag.Bool("stress-keepalive", false, "reuse TCP connections between different HTTP requests")
 
 	flag.Parse()
 
@@ -218,10 +220,10 @@ func main() {
 			base.CheckError(err)
 			_ = eventID
 		}
-		timeElapsed := MakeStress(jobFunc, *stressRPS, *stressDuration)
+		stressTimes := MakeStress(jobFunc, *stressRPS, *stressDuration, *stressReqNumber)
 
 		rc.WaitStatsReady()
-		PrintReport(rc.Stats, timeElapsed, 10)
+		PrintReport(rc.Stats, stressTimes, 10)
 
 		return
 	}

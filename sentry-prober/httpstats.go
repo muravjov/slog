@@ -200,7 +200,7 @@ func (p StatList) Len() int { return len(p) }
 func (p StatList) Less(i, j int) bool { return p[j].Counter < p[i].Counter }
 func (p StatList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-func PrintReport(stats StatsType, timeElapsed float64, aggregationCount int) {
+func PrintReport(stats StatsType, stressTimes StressTimes, aggregationCount int) {
 	var lst StatList
 	var totals int64 = 0
 	successTotals := stats["2xx"]
@@ -262,9 +262,11 @@ Report
 		fmt.Fprintln(w, fmt.Sprintf(format, a...))
 	}
 
+	timeElapsed := stressTimes.ElapsedTime
 	writeColumn("Number of Requests:\t%d", totals)
 	writeColumn("Time Elapsed:\t%.2f seconds", timeElapsed)
 	writeColumn("Requests per Second:\t%s", getRatio(totals, timeElapsed))
+	writeColumn("Jobs Spawning per Second:\t%s", getRatio(totals, stressTimes.SpawningJobsTime))
 	writeColumn("Success percent (HTTP 2xx):\t%s", getPercent(successTotals, float64(totals)))
 	w.Flush()
 }

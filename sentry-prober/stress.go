@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"reflect"
@@ -69,7 +70,14 @@ func NewJobContext() *JobContext {
 		jobsEnded.Done()
 	}()
 
-	startedChan := make(chan struct{}, 1000)
+	// :TRICKY: starting jobs would block if startedChan
+	// doesn't have suffient size
+	// our target is to get 100000 rps, but we have seen only
+	// 1000 rps with most syntetic test (getsockopt: connection refused), so that impossibleRPSNumber is enough
+	// not to slow it down more
+	// :TODO: remake via sync.Mutex + NewEvent(), not via channels pls (because it is not scalable now)
+	impossibleRPSNumber := 100000
+	startedChan := make(chan struct{}, impossibleRPSNumber)
 	go func() {
 		for range startedChan {
 			started = started + 1
@@ -109,93 +117,126 @@ func NewJobContext() *JobContext {
 	}
 }
 
-func MakeStress(jobFunc func(), rps float64, duration float64) float64 {
+// in seconds
+type StressTimes struct {
+	ElapsedTime      float64
+	SpawningJobsTime float64
+}
+
+func MakeStress(jobFunc func(), rps float64, duration float64, requestCnt int) StressTimes {
 	jc := NewJobContext()
 
-	interruptChan := make(chan os.Signal, 1)
-	signal.Notify(interruptChan, syscall.SIGINT)
-
-	// https://stackoverflow.com/questions/19992334/how-to-listen-to-n-channels-dynamic-select-statement
-	cases := []reflect.SelectCase{}
-
-	currentIdx := 0
-	appendCase := func(cs reflect.SelectCase) int {
-		idx := currentIdx
-		currentIdx++
-
-		cases = append(cases, cs)
-
-		return idx
-	}
-
-	appendRecvCase := func(ch interface{}) int {
-		return appendCase(reflect.SelectCase{
-			Dir:  reflect.SelectRecv,
-			Chan: reflect.ValueOf(ch),
-		})
-	}
-
-	interruptIdx := appendRecvCase(interruptChan)
-
-	durationTimerIdx := -1
-	if duration >= 0 {
-		// we need to create timer's channels not in the cycle
-		durationTimeout := time.Duration(float64(time.Second) * float64(duration))
-		durationTimer := time.After(durationTimeout)
-		durationTimerIdx = appendRecvCase(durationTimer)
-	}
-
-	rpsTickerIdx := -1
-	defaultIdx := -1
-
-	var rpsTicker *time.Ticker
-	defer func() {
-		if rpsTicker != nil {
-			rpsTicker.Stop()
-		}
-	}()
-
-	if rps >= 0 {
-		rpsTimeout := time.Duration(float64(time.Second) / float64(rps))
-		// we need ticker, not timer, to tick multiple times and stop after the cycle
-		// (another way - just create time.After(rpsTimeout) just in the select-case)
-		//rpsTimer := time.After(rpsTimeout)
-		rpsTicker = time.NewTicker(rpsTimeout)
-		rpsTickerIdx = appendRecvCase(rpsTicker.C)
-	} else {
-		defaultIdx = appendCase(reflect.SelectCase{
-			Dir: reflect.SelectDefault,
-		})
-	}
-
 	now := time.Now()
-forCycle:
-	for {
-		// select {
-		// case <-interruptChan:
-		// 	break forCycle
-		// case <-durationTimer:
-		// 	break forCycle
-		// case <-rpsTicker.C:
-		// 	jc.StartJob(jobFunc)
-		// default:
-		// 	jc.StartJob(jobFunc)
-		// }
-		chosen, _, _ := reflect.Select(cases)
-		switch chosen {
-		case interruptIdx, durationTimerIdx:
-			break forCycle
-		case rpsTickerIdx, defaultIdx:
+	if requestCnt >= 0 {
+		// starting directly is way faster than select(),
+		// got 10000 jobs started/second vs.
+		// 1000 jobs started/second with reflect.Select() = Go-select{} (which is not system select(),
+		// makes sorting, fastrand() transpositions of cases, may easily yield() control to other goroutine and so on)
+		for range iter.N(requestCnt) {
 			jc.StartJob(jobFunc)
 		}
+	} else {
+		interruptChan := make(chan os.Signal, 1)
+		signal.Notify(interruptChan, syscall.SIGINT)
+
+		// https://stackoverflow.com/questions/19992334/how-to-listen-to-n-channels-dynamic-select-statement
+		cases := []reflect.SelectCase{}
+
+		currentIdx := 0
+		appendCase := func(cs reflect.SelectCase) int {
+			idx := currentIdx
+			currentIdx++
+
+			cases = append(cases, cs)
+
+			return idx
+		}
+
+		appendRecvCase := func(ch interface{}) int {
+			return appendCase(reflect.SelectCase{
+				Dir:  reflect.SelectRecv,
+				Chan: reflect.ValueOf(ch),
+			})
+		}
+
+		interruptIdx := appendRecvCase(interruptChan)
+
+		durationTimerIdx := -1
+		if duration >= 0 {
+			// we need to create timer's channels not in the cycle
+			durationTimeout := time.Duration(float64(time.Second) * float64(duration))
+			durationTimer := time.After(durationTimeout)
+			durationTimerIdx = appendRecvCase(durationTimer)
+		}
+
+		rpsTickerIdx := -1
+		defaultIdx := -1
+
+		var rpsTicker *time.Ticker
+		defer func() {
+			if rpsTicker != nil {
+				rpsTicker.Stop()
+			}
+		}()
+
+		if rps >= 0 {
+			rpsTimeout := time.Duration(float64(time.Second) / float64(rps))
+			// we need ticker, not timer, to tick multiple times and stop after the cycle
+			// (another way - just create time.After(rpsTimeout) just in the select-case)
+			//rpsTimer := time.After(rpsTimeout)
+			rpsTicker = time.NewTicker(rpsTimeout)
+			rpsTickerIdx = appendRecvCase(rpsTicker.C)
+		} else {
+			defaultIdx = appendCase(reflect.SelectCase{
+				Dir: reflect.SelectDefault,
+			})
+		}
+
+		now = time.Now()
+	forCycle:
+		for {
+			// select {
+			// case <-interruptChan:
+			// 	break forCycle
+			// case <-durationTimer:
+			// 	break forCycle
+			// case <-rpsTicker.C:
+			// 	jc.StartJob(jobFunc)
+			// default:
+			// 	jc.StartJob(jobFunc)
+			// }
+			chosen, _, _ := reflect.Select(cases)
+			switch chosen {
+			case interruptIdx, durationTimerIdx:
+				break forCycle
+			case rpsTickerIdx, defaultIdx:
+				jc.StartJob(jobFunc)
+			}
+		}
 	}
+
 	measureTime := func() float64 {
 		return time.Now().Sub(now).Seconds()
 	}
-	log.Infof("Stopped spawning jobs after %.2f seconds", measureTime())
+
+	spawningJobsTime := measureTime()
+	// :TRICKY: go-logging' Logger.log() makes real write to stderr too long,
+	// the lag is ~7 seconds for 10000 concurrent goroutines;
+	//log.Infof("Stopped spawning jobs after %.2f seconds", spawningJobsTime)
+	// direct write to stderr has a lag about 1 second under same conditions
+	//fmt.Fprintf(os.Stderr, "Stopped spawning jobs after %.2f seconds", spawningJobsTime)
+	stopMsg := fmt.Sprintf("Stopped spawning jobs after %.2f seconds", spawningJobsTime)
+	//os.Stderr.Write([]byte(stopMsg))
+	// :TRICKY: no, even raw system write(fd) may render message in console after 7 seconds
+	// a string generated after 0.26 seconds - need to launch the program from a separate box
+	syscall.Write(syscall.Stderr, []byte(stopMsg))
+	//syscall.Sync()
 
 	jc.Wait()
-	return measureTime()
+	return StressTimes{
+		ElapsedTime:      measureTime(),
+		SpawningJobsTime: spawningJobsTime,
+	}
 }
 
 // :COPY_N_PASTE: Client
