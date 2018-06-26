@@ -57,7 +57,7 @@ func TestStress(t *testing.T) {
 		duration := 2. // seconds
 
 		///
-		timeElapsed := MakeStress(jobFunc, rps, duration)
+		timeElapsed := MakeStress(jobFunc, rps, duration, -1)
 
 		rc.WaitStatsReady()
 		//spew.Dump(rc.Stats)
@@ -99,13 +99,17 @@ func TestStress(t *testing.T) {
 			"6": 6,
 		}
 		var timeElapsed float64 = 1 // seconds
+		stressTimes := StressTimes{
+			ElapsedTime:      timeElapsed,
+			SpawningJobsTime: timeElapsed,
+		}
 
 		aggregationCount := 5 // все, что свыше => в "Other Stats"
 
-		PrintReport(stats, timeElapsed, aggregationCount)
+		PrintReport(stats, stressTimes, aggregationCount)
 	}
 
-	if false {
+	if true {
 		dsn := "http://aaa:bbb@localhost:9001/2"
 
 		ServeDummyHTTP(dsn)

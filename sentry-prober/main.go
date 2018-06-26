@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"runtime/pprof"
 
 	"bytes"
 	"compress/zlib"
@@ -173,6 +174,8 @@ func serializedPacket(packetJSON []byte) (io.Reader, string, error) {
 }
 
 func main() {
+	cpuprofile := flag.String("cpuprofile", "", "save CPU profile to file")
+
 	isWarning := flag.BoolP("warning", "", false, "warning (without stacktrace) vs error")
 	pMessage := flag.StringP("message", "", "sentry-prober", "message to send")
 	isRandom := flag.BoolP("random", "", false, "add random string to message")
@@ -189,6 +192,17 @@ func main() {
 	keepaliveStress := flag.Bool("stress-keepalive", false, "reuse TCP connections between different HTTP requests")
 
 	flag.Parse()
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatalf("Error creating cpu profile: %s\n", err)
+		}
+
+		defer f.Close()
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	// :TODO: sentry-prober --help to show required argument: DSN
 	dsn := flag.Arg(0)
