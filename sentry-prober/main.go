@@ -1,11 +1,12 @@
 package main
 
 import (
+	"compress/zlib"
 	"fmt"
 	"runtime/pprof"
+	"sync"
 
 	"bytes"
-	"compress/zlib"
 	"encoding/base64"
 	"io"
 	"io/ioutil"
@@ -158,13 +159,32 @@ func (t *HTTPTransport) Send(url, authHeader string, packet *raven.Packet) error
 	return nil
 }
 
+var compressionLevel int = zlib.BestSpeed
+
+//var compressionLevel int = zlib.BestCompression
+
+var deflateFree = sync.Pool{
+	New: func() interface{} {
+		deflate, err := zlib.NewWriterLevel(nil, compressionLevel)
+		base.CheckError(err)
+		return deflate
+	},
+}
+
 func serializedPacket(packetJSON []byte) (io.Reader, string, error) {
 	// Only deflate/base64 the packet if it is bigger than 1KB, as there is
 	// overhead.
 	if len(packetJSON) > 1000 {
 		buf := &bytes.Buffer{}
 		b64 := base64.NewEncoder(base64.StdEncoding, buf)
-		deflate, _ := zlib.NewWriterLevel(b64, zlib.BestCompression)
+
+		//deflate, _ := zlib.NewWriterLevel(b64, compressionLevel)
+		//base.CheckError(err)
+		deflate, ok := deflateFree.Get().(*zlib.Writer)
+		base.Assert(ok)
+		deflate.Reset(b64)
+		defer deflateFree.Put(deflate)
+
 		deflate.Write(packetJSON)
 		deflate.Close()
 		b64.Close()

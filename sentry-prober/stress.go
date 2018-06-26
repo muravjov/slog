@@ -126,7 +126,12 @@ type StressTimes struct {
 func MakeStress(jobFunc func(), rps float64, duration float64, requestCnt int) StressTimes {
 	jc := NewJobContext()
 
+	log.Info("Starting stress:")
+
 	now := time.Now()
+	measureTime := func() float64 {
+		return time.Now().Sub(now).Seconds()
+	}
 	if requestCnt >= 0 {
 		// starting directly is way faster than select(),
 		// got 10000 jobs started/second vs.
@@ -213,10 +218,6 @@ func MakeStress(jobFunc func(), rps float64, duration float64, requestCnt int) S
 				jc.StartJob(jobFunc)
 			}
 		}
-	}
-
-	measureTime := func() float64 {
-		return time.Now().Sub(now).Seconds()
 	}
 
 	spawningJobsTime := measureTime()

@@ -152,6 +152,9 @@ func ExecuteRequest(req *http.Request, rc *RequestContext) {
 				hint = fmt.Sprintf("GotConn=%t, GotFirstResponseByte=%t", gotConn, gotFirstResponseByte)
 			} else if IsServerClosedIdle(err) {
 				hint = "client stays keepalive after request, but server closes the connection"
+			} else if errTyped.Timeout() {
+				// really that is err.(net.Error) and unexported httpError
+				hint = "timeout=5 seconds hit, hardcoded"
 			}
 		}
 

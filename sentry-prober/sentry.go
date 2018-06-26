@@ -93,7 +93,7 @@ func PostSentryEvent(ev *Event, client *Client, rc *RequestContext) (eventID str
 		}
 
 		// :COPY_N_PASTE: CaptureMessageAndWait()
-		packet := sentry.Interface2Packet(message, iObject, raven.WARNING)
+		packet = sentry.Interface2Packet(message, iObject, raven.WARNING)
 
 		var fn string
 		pc, pathname, line, ok := runtime.Caller(calldepth)
