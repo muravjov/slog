@@ -210,6 +210,7 @@ func main() {
 		"N >=0 means direct stress mode \"for range N {StartJob()}\"")
 	selfStress := flag.Bool("stress-self", false, "start dummy http server at dsn")
 	keepaliveStress := flag.Bool("stress-keepalive", false, "reuse TCP connections between different HTTP requests")
+	stressTimeout := flag.Float64("stress-timeout", 5., "stress timeout; = 0 means no request timeout")
 
 	flag.Parse()
 
@@ -237,7 +238,8 @@ func main() {
 
 		//fmt.Println(*stressRPS, *stressDuration)
 		rco := &RequestContextOptions{
-			KeepAlive: *keepaliveStress,
+			KeepAlive:     *keepaliveStress,
+			StressTimeout: *stressTimeout,
 		}
 		rc := NewRequestContextEx(rco)
 

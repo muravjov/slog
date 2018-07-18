@@ -16,19 +16,27 @@ import (
 	"github.com/G-Core/slog/base"
 )
 
-type StatsType map[string]int64
+type StatsType struct {
+	Statuses map[string]int64
+
+	// contains the list of all done requests
+	// 10 seconds of heavy stress doesn't eat much memory:
+	// 10 seconds * 6000 prs = 60000 float64 = 60000 * 8 = 480000 < 0.5 Megabyte
+	Times []float64
+}
 
 type RequestContext struct {
 	Client *http.Client
-	Stats  StatsType
+	Stats  *StatsType
 
-	IncrStat func(msg string)
+	IncrStat func(msg string, dur float64)
 
 	WaitStatsReady func()
 }
 
 type RequestContextOptions struct {
-	KeepAlive bool
+	KeepAlive     bool
+	StressTimeout float64
 }
 
 func NewRequestContext() *RequestContext {
@@ -72,33 +80,45 @@ func NewRequestContextEx(rco *RequestContextOptions) *RequestContext {
 
 	client := &http.Client{Transport: rt}
 	rc.Client = client
-	client.Timeout = time.Second * 5
+	client.Timeout = time.Duration(float64(time.Second) * rco.StressTimeout)
 
 	// for the sake of simplicity, let's choose sync.Map
 	// https://medium.com/@deckarep/the-new-kid-in-town-gos-sync-map-de24a6bf7c2c
 	//var stats sync.Map
 	//
 	// No, unnecessarily difficult for now,- go for channels
-	stats := make(map[string]int64)
+	statuses := make(map[string]int64)
+	stats := &StatsType{
+		statuses,
+		nil,
+	}
 	rc.Stats = stats
 
-	statChan := make(chan string, 1000)
+	type requestStat struct {
+		msg      string
+		duration float64 // seconds
+	}
+
+	statChan := make(chan requestStat, 1000)
 	statDone := NewEvent()
 	go func() {
-		for msg := range statChan {
-			counter, ok := stats[msg]
+		for rs := range statChan {
+			msg := rs.msg
+			counter, ok := statuses[msg]
 			if ok {
 				counter = counter + 1
 			} else {
 				counter = 1
 			}
-			stats[msg] = counter
+			statuses[msg] = counter
+
+			stats.Times = append(stats.Times, rs.duration)
 		}
 		statDone.Done()
 	}()
 
-	rc.IncrStat = func(msg string) {
-		statChan <- msg
+	rc.IncrStat = func(msg string, dur float64) {
+		statChan <- requestStat{msg, dur}
 	}
 
 	rc.WaitStatsReady = func() {
@@ -138,6 +158,12 @@ func ExecuteRequest(req *http.Request, rc *RequestContext) {
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 
+	now := time.Now()
+	appendStat := func(msg string) {
+		dur := measureTime(now)
+		rc.IncrStat(msg, dur)
+	}
+
 	// :TRICKY: main error checking occurs in transport.go:persistConn.readLoop()
 	resp, err := rc.Client.Do(req)
 	if err != nil {
@@ -154,7 +180,7 @@ func ExecuteRequest(req *http.Request, rc *RequestContext) {
 				hint = "client stays keepalive after request, but server closes the connection"
 			} else if errTyped.Timeout() {
 				// really that is err.(net.Error) and unexported httpError
-				hint = "timeout=5 seconds hit, hardcoded"
+				hint = "non-zero timeout hit"
 			}
 		}
 
@@ -162,7 +188,7 @@ func ExecuteRequest(req *http.Request, rc *RequestContext) {
 		if hint != "" {
 			msg = fmt.Sprintf("%s (%s)", msg, hint)
 		}
-		rc.IncrStat(msg)
+		appendStat(msg)
 		return
 	}
 	defer resp.Body.Close()
@@ -175,9 +201,9 @@ func ExecuteRequest(req *http.Request, rc *RequestContext) {
 
 	switch dig := resp.StatusCode / 100; dig {
 	case 2, 4, 5:
-		rc.IncrStat(fmt.Sprintf("%dxx", dig))
+		appendStat(fmt.Sprintf("%dxx", dig))
 	default:
-		rc.IncrStat(resp.Status)
+		appendStat(resp.Status)
 	}
 }
 
@@ -203,11 +229,13 @@ func (p StatList) Len() int { return len(p) }
 func (p StatList) Less(i, j int) bool { return p[j].Counter < p[i].Counter }
 func (p StatList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-func PrintReport(stats StatsType, stressTimes StressTimes, aggregationCount int) {
+func PrintReport(stats *StatsType, stressTimes StressTimes, aggregationCount int) {
+	statuses := stats.Statuses
+
 	var lst StatList
 	var totals int64 = 0
-	successTotals := stats["2xx"]
-	for k, v := range stats {
+	successTotals := statuses["2xx"]
+	for k, v := range statuses {
 		lst = append(lst, StatElement{k, v})
 		totals += v
 	}
@@ -271,5 +299,35 @@ Report
 	writeColumn("Requests per Second:\t%s", getRatio(totals, timeElapsed))
 	writeColumn("Jobs Spawning per Second:\t%s", getRatio(totals, stressTimes.SpawningJobsTime))
 	writeColumn("Success percent (HTTP 2xx):\t%s", getPercent(successTotals, float64(totals)))
+
+	w.Write([]byte("\n"))
+
+	times := stats.Times
+	sort.Float64s(times)
+
+	writeTime := func(title string, fn func() float64) {
+		value := "n/a"
+		if ln := len(times); ln > 0 {
+			value = fmt.Sprintf("%f", fn())
+		}
+		writeColumn("%s, seconds:\t%s", title, value)
+	}
+
+	writeTime("Worst request duration", func() float64 {
+		return times[len(times)-1]
+	})
+	writeTime("Mean  request duration", func() float64 {
+		var sum float64
+		for _, d := range times {
+			sum += d
+		}
+
+		return sum / float64(len(times))
+	})
+	writeTime("95ptl request duration", func() float64 {
+		idx := int(float64(len(times)) * 0.95)
+		return times[idx]
+	})
+
 	w.Flush()
 }

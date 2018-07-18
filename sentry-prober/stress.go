@@ -123,6 +123,10 @@ type StressTimes struct {
 	SpawningJobsTime float64
 }
 
+func measureTime(from time.Time) float64 {
+	return time.Now().Sub(from).Seconds()
+}
+
 func MakeStress(jobFunc func(), rps float64, duration float64, requestCnt int) StressTimes {
 	jc := NewJobContext()
 
@@ -130,7 +134,7 @@ func MakeStress(jobFunc func(), rps float64, duration float64, requestCnt int) S
 
 	now := time.Now()
 	measureTime := func() float64 {
-		return time.Now().Sub(now).Seconds()
+		return measureTime(now)
 	}
 	if requestCnt >= 0 {
 		// starting directly is way faster than select(),
