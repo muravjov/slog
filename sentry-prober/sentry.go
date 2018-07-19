@@ -10,8 +10,19 @@ import (
 
 	"github.com/G-Core/slog/base"
 	"github.com/G-Core/slog/sentry"
+	"github.com/G-Core/slog/stress"
 	raven "github.com/getsentry/raven-go"
 )
+
+// :COPY_N_PASTE: Client
+type Client struct {
+	//Tags map[string]string
+	//context *context
+
+	url        string
+	projectID  string
+	authHeader string
+}
 
 func MakeClient(dsn string) *Client {
 	client := &Client{}
@@ -64,7 +75,7 @@ type Event struct {
 	isRandom bool
 }
 
-func PostSentryEvent(ev *Event, client *Client, rc *RequestContext) (eventID string, err error) {
+func PostSentryEvent(ev *Event, client *Client, rc *stress.RequestContext) (eventID string, err error) {
 	var args []interface{} = nil
 
 	message := ev.key
@@ -167,7 +178,7 @@ func PostSentryEvent(ev *Event, client *Client, rc *RequestContext) (eventID str
 	// 	err = fmt.Errorf("raven: got http status %d", res.StatusCode)
 	// 	return
 	// }
-	ExecuteRequest(req, rc)
+	stress.ExecuteRequest(req, rc)
 
 	return packet.EventID, nil
 }

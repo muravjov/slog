@@ -1,4 +1,4 @@
-package main
+package stress
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("sentry-prober")
+var log = logging.MustGetLogger("stress")
 
 type HandlerFunc func(http.ResponseWriter, *http.Request, Match)
 

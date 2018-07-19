@@ -1,4 +1,4 @@
-package main
+package stress
 
 import (
 	"fmt"
@@ -242,14 +242,4 @@ func MakeStress(jobFunc func(), rps float64, duration float64, requestCnt int) S
 		ElapsedTime:      measureTime(),
 		SpawningJobsTime: spawningJobsTime,
 	}
-}
-
-// :COPY_N_PASTE: Client
-type Client struct {
-	//Tags map[string]string
-	//context *context
-
-	url        string
-	projectID  string
-	authHeader string
 }

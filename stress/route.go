@@ -1,4 +1,4 @@
-package main
+package stress
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package main
+package stress
 
 import (
 	"fmt"
@@ -16,8 +16,10 @@ import (
 	"github.com/G-Core/slog/base"
 )
 
+type Statuses map[string]int64
+
 type StatsType struct {
-	Statuses map[string]int64
+	Statuses Statuses
 
 	// contains the list of all done requests
 	// 10 seconds of heavy stress doesn't eat much memory:

@@ -18,8 +18,10 @@ import (
 	"github.com/G-Core/slog"
 	"github.com/G-Core/slog/base"
 	"github.com/G-Core/slog/sentry"
+	"github.com/G-Core/slog/stress"
 	slogV2 "github.com/G-Core/slog/v2"
 	"github.com/getsentry/raven-go"
+	logging "github.com/op/go-logging"
 	flag "github.com/spf13/pflag"
 
 	"github.com/G-Core/slog/watcher"
@@ -43,6 +45,8 @@ func Shell2Cmd(cmdStr string) (*exec.Cmd, error) {
 	cmd := exec.Command(command[0], command[1:]...)
 	return cmd, nil
 }
+
+var log = logging.MustGetLogger("sentry-prober")
 
 func GotErrorEx(isError bool, format string, args ...interface{}) bool {
 	if isError {
@@ -233,15 +237,33 @@ func main() {
 
 	if *isStress {
 		if *selfStress {
-			go ServeDummyHTTP(dsn)
+			// url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(), name='sentry-api-store')
+			route := stress.NewRoute(`^/api/(?P<project_id>[\w_-]+)/store/$`, func(w http.ResponseWriter, r *http.Request, match stress.Match) {
+				s := match.GetArgumentsMap()["project_id"]
+				_ = s
+				//fmt.Println(s)
+
+				// :TODO: go-raven sends events as "application/octet-stream" and evidently gzip-es them
+				// var dat StrDict
+				// err := DecodeCheckJSONBody(w, r, &dat)
+				// if err != nil {
+				// 	return
+				// }
+				//spew.Dump(dat)
+
+				b := stress.MarshalIndent(map[string]string{})
+				stress.ServeJSON(w, http.StatusCreated, b)
+			})
+
+			go stress.ServeDummyHTTP(dsn, route)
 		}
 
 		//fmt.Println(*stressRPS, *stressDuration)
-		rco := &RequestContextOptions{
+		rco := &stress.RequestContextOptions{
 			KeepAlive:     *keepaliveStress,
 			StressTimeout: *stressTimeout,
 		}
-		rc := NewRequestContextEx(rco)
+		rc := stress.NewRequestContextEx(rco)
 
 		event := &Event{
 			isError:  !*isWarning,
@@ -256,10 +278,10 @@ func main() {
 			base.CheckError(err)
 			_ = eventID
 		}
-		stressTimes := MakeStress(jobFunc, *stressRPS, *stressDuration, *stressReqNumber)
+		stressTimes := stress.MakeStress(jobFunc, *stressRPS, *stressDuration, *stressReqNumber)
 
 		rc.WaitStatsReady()
-		PrintReport(rc.Stats, stressTimes, 10)
+		stress.PrintReport(rc.Stats, stressTimes, 10)
 
 		return
 	}
