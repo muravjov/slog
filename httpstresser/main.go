@@ -19,6 +19,8 @@ func main() {
 	selfStress := flag.Bool("self", false, "start dummy http server at url")
 	keepaliveStress := flag.Bool("keepalive", false, "reuse TCP connections between different HTTP requests")
 	stressTimeout := flag.Float64("timeout", 5., "stress timeout; = 0 means no request timeout")
+	tls := flag.String("tls", "", "Custom tls config file: toml format, fields ca, cert, key, skip_verify, server_name")
+	selfTls := flag.String("self-tls", "", "Custom tls config file, for --self server")
 
 	flag.Parse()
 
@@ -34,13 +36,14 @@ func main() {
 			stress.ServeJSON(w, http.StatusOK, b)
 		})
 
-		go stress.ServeDummyHTTP(uri, route)
+		go stress.ServeDummyHTTP(uri, route, *selfTls)
 	}
 
 	//fmt.Println(*stressRPS, *stressDuration)
 	rco := &stress.RequestContextOptions{
 		KeepAlive:     *keepaliveStress,
 		StressTimeout: *stressTimeout,
+		TLSConfigFile: *tls,
 	}
 	rc := stress.NewRequestContextEx(rco)
 

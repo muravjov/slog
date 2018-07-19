@@ -255,7 +255,7 @@ func main() {
 				stress.ServeJSON(w, http.StatusCreated, b)
 			})
 
-			go stress.ServeDummyHTTP(dsn, route)
+			go stress.ServeDummyHTTP(dsn, route, "")
 		}
 
 		//fmt.Println(*stressRPS, *stressDuration)

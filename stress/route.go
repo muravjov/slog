@@ -1,6 +1,7 @@
 package stress
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -64,7 +65,7 @@ func MarshalIndent(v interface{}) []byte {
 	return dat
 }
 
-func Serve(addr string, appRoutes Routes, serveData *ServeData) {
+func Serve(addr string, appRoutes Routes, serveData *ServeData, tlsConfig *tls.Config) {
 	makeRoute := GenerateMakeRoute(serveData)
 
 	commonRoutes := Routes{
@@ -88,5 +89,5 @@ func Serve(addr string, appRoutes Routes, serveData *ServeData) {
 		routes = append(routes, r...)
 	}
 
-	ListenAndServe(addr, routes)
+	ListenAndServe(addr, routes, tlsConfig)
 }

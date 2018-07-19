@@ -1,6 +1,7 @@
 package stress
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"regexp"
@@ -158,10 +159,22 @@ func (match Match) Arguments() []string {
 	return result
 }
 
-func ListenAndServe(addr string, routes []*Route) {
-	err := http.ListenAndServe(addr, &ServerHandler{
-		routes,
-	})
+func ListenAndServe(addr string, routes []*Route, tlsConfig *tls.Config) {
+	server := &http.Server{
+		Addr: addr,
+		Handler: &ServerHandler{
+			routes,
+		},
+
+		TLSConfig: tlsConfig,
+	}
+
+	var err error
+	if tlsConfig != nil {
+		err = server.ListenAndServeTLS("", "")
+	} else {
+		err = server.ListenAndServe()
+	}
 	CheckError(err)
 }
 

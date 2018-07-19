@@ -1,6 +1,7 @@
 package stress
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,7 +24,7 @@ func DecodeCheckJSONBody(w http.ResponseWriter, r *http.Request, v interface{}) 
 
 type StrDict map[string]interface{}
 
-func ServeDummyHTTP(targetUrl string, route *Route) {
+func ServeDummyHTTP(targetUrl string, route *Route, serverTLSConfigFname string) {
 	uri, err := url.Parse(targetUrl)
 	CheckError(err)
 
@@ -39,7 +40,23 @@ func ServeDummyHTTP(targetUrl string, route *Route) {
 		route,
 	}
 
+	var tlsConfig *tls.Config
+	switch uri.Scheme {
+	case "http":
+	case "https":
+		if serverTLSConfigFname != "" {
+			tlsConfig = NewServerTLSConfig(serverTLSConfigFname)
+		}
+		// :TRICKY: in case of https we anyway make non nil *tls.Config
+		// to force https serving
+		if tlsConfig == nil {
+			tlsConfig = &tls.Config{}
+		}
+	default:
+		log.Fatalf("unknown url scheme: %s", uri.Scheme)
+	}
+
 	//fmt.Println(uri.Host)
-	Serve(uri.Host, routes, serveData)
+	Serve(uri.Host, routes, serveData, tlsConfig)
 	CheckError(err)
 }

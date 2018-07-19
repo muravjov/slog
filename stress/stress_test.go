@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/G-Core/slog/base"
+
 	"github.com/bradfitz/iter"
 	"github.com/davecgh/go-spew/spew"
 )
@@ -92,6 +94,17 @@ func TestStress(t *testing.T) {
 			ServeJSON(w, http.StatusOK, b)
 		})
 
-		ServeDummyHTTP(dsn, route)
+		ServeDummyHTTP(dsn, route, "")
 	}
+
+	if false {
+		tlsConfig := NewTLSConfig("tls.toml")
+		base.Assert(tlsConfig != nil)
+	}
+
+	if false {
+		tlsConfig := NewServerTLSConfig("tls.toml")
+		base.Assert(tlsConfig != nil)
+	}
+
 }

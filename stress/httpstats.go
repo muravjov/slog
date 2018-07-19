@@ -39,6 +39,7 @@ type RequestContext struct {
 type RequestContextOptions struct {
 	KeepAlive     bool
 	StressTimeout float64
+	TLSConfigFile string
 }
 
 func NewRequestContext() *RequestContext {
@@ -52,7 +53,12 @@ func NewRequestContextEx(rco *RequestContextOptions) *RequestContext {
 	rc := &RequestContext{}
 
 	var rt http.RoundTripper
-	if !rco.KeepAlive {
+	var customTransport *http.Transport
+	makeCustomTransport := func() {
+		if customTransport != nil {
+			return
+		}
+
 		transport := &http.Transport{}
 		defaultTransport, ok := http.DefaultTransport.(*http.Transport)
 		base.Assert(ok)
@@ -75,9 +81,22 @@ func NewRequestContextEx(rco *RequestContextOptions) *RequestContext {
 		} {
 			tValue.FieldByName(name).Set(dtValue.FieldByName(name))
 		}
-		transport.DisableKeepAlives = true
 
+		customTransport = transport
 		rt = transport
+	}
+
+	if !rco.KeepAlive {
+		makeCustomTransport()
+		customTransport.DisableKeepAlives = true
+	}
+
+	if rco.TLSConfigFile != "" {
+		tlsConfig := NewTLSConfig(rco.TLSConfigFile)
+		if tlsConfig != nil {
+			makeCustomTransport()
+			customTransport.TLSClientConfig = tlsConfig
+		}
 	}
 
 	client := &http.Client{Transport: rt}
