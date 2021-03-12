@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/G-Core/slog/base"
-	"github.com/G-Core/slog/sentry"
+	"github.com/muravjov/slog"
+	"github.com/muravjov/slog/sentry"
 	"github.com/erikdubbelboer/gspt"
 )
 

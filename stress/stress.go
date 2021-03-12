@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/G-Core/slog/base"
+	"github.com/muravjov/slog"
 	"github.com/bradfitz/iter"
 )
 

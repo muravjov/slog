@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/G-Core/slog/stress"
+	"github.com/muravjov/slog/stress"
 	flag "github.com/spf13/pflag"
 )
 

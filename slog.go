@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/G-Core/slog/base"
-	slogV2 "github.com/G-Core/slog/v2"
-	"github.com/G-Core/slog/watcher"
+	"github.com/muravjov/slog"
+	slogV2 "github.com/muravjov/slog/v2"
+	"github.com/muravjov/slog/watcher"
 	"github.com/evalphobia/logrus_sentry"
 	"github.com/getsentry/raven-go"
 	"github.com/op/go-logging"

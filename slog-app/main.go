@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/G-Core/slog"
+	"github.com/muravjov/slog"
 	flag "github.com/spf13/pflag"
 	"net/http"
 	"time"

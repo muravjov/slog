@@ -10,10 +10,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/G-Core/slog/base"
-	"github.com/G-Core/slog/sentry"
 	"github.com/erikdubbelboer/gspt"
 	"github.com/kardianos/osext"
+	"github.com/muravjov/slog/base"
+	"github.com/muravjov/slog/sentry"
 )
 
 // it's hack,
@@ -127,9 +127,9 @@ func StartWatcher(dsn string, errFileName string) {
 		Env:   env,
 		Files: f,
 		Sys:   &syscall.SysProcAttr{
-		//Chroot:     d.Chroot,
-		//Credential: d.Credential,
-		//Setsid:     true,
+			//Chroot:     d.Chroot,
+			//Credential: d.Credential,
+			//Setsid:     true,
 		},
 	}
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/G-Core/slog/base"
+	"github.com/muravjov/slog"
 
 	"github.com/bradfitz/iter"
 	"github.com/davecgh/go-spew/spew"

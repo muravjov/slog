@@ -8,9 +8,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/G-Core/slog/base"
-	"github.com/G-Core/slog/sentry"
-	"github.com/G-Core/slog/stress"
+	"github.com/muravjov/slog"
+	"github.com/muravjov/slog/sentry"
+	"github.com/muravjov/slog/stress"
 	raven "github.com/getsentry/raven-go"
 )
 

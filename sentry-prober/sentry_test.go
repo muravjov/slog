@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/G-Core/slog/base"
-	"github.com/G-Core/slog/stress"
+	"github.com/muravjov/slog"
+	"github.com/muravjov/slog/stress"
 	"github.com/davecgh/go-spew/spew"
 )
 

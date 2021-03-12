@@ -5,7 +5,7 @@ Also it provides a way to catch Golang panics with a special watchdog process. F
 
 # Installation
 
-    go get github.com/github.com/G-Core/slog
+    go get github.com/github.com/muravjov/slog
 
 # Usage
 
@@ -52,9 +52,9 @@ If you use [logrus](https://github.com/sirupsen/logrus):
 	slog.SetupLogrus(logPath, sentryDsn)
 
 # API documentation
-https://godoc.org/github.com/G-Core/slog/sentry
+https://godoc.org/github.com/muravjov/slog/sentry
 
-https://godoc.org/github.com/G-Core/slog/watcher
+https://godoc.org/github.com/muravjov/slog/watcher
 
 # sentry_prober
 *sentry_prober* is utility to test/troubleshoot Sentry logging:

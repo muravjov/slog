@@ -8,9 +8,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/G-Core/slog/sentry"
 	raven "github.com/getsentry/raven-go"
 	"github.com/maruel/panicparse/stack"
+	"github.com/muravjov/slog/sentry"
 )
 
 func ProcessStream(in io.Reader, watcheePid int, watcheeArgs []string) {
@@ -25,11 +25,12 @@ func ProcessStream(in io.Reader, watcheePid int, watcheeArgs []string) {
 	//fmt.Fprintln(os.Stderr, "ProcessStream1")
 
 	wr := NewWR(in)
-	goroutines, err := stack.ParseDump(wr, ioutil.Discard)
+	context, err := stack.ParseDump(wr, ioutil.Discard, false)
 	if err != nil {
 		log.Fatalf("ParseDump: %s", err)
 	}
 
+	goroutines := context.Goroutines
 	if len(goroutines) != 0 {
 		// :TRICKY: that goes to os.Stderr like in WatchReader.Read()
 		log.Printf("Post-mortem detected, %v, pid=%d", watcheeArgs, watcheePid)
@@ -45,11 +46,11 @@ func ProcessStream(in io.Reader, watcheePid int, watcheeArgs []string) {
 			f := call.Func
 			// NewStacktraceFrame
 			frame := &raven.StacktraceFrame{
-				Filename: call.SourcePath,
+				Filename: call.SrcPath,
 				Function: f.Name(),
 				Module:   f.PkgName(),
 
-				AbsolutePath: call.SourcePath,
+				AbsolutePath: call.SrcPath,
 				Lineno:       call.Line,
 				InApp:        false,
 			}
