@@ -30,6 +30,10 @@ func ProcessStream(in io.Reader, watcheePid int, watcheeArgs []string) {
 		log.Fatalf("ParseDump: %s", err)
 	}
 
+	if context == nil {
+		return
+	}
+
 	goroutines := context.Goroutines
 	if len(goroutines) != 0 {
 		// :TRICKY: that goes to os.Stderr like in WatchReader.Read()
