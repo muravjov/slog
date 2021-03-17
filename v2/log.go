@@ -9,9 +9,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/muravjov/slog"
-	"github.com/muravjov/slog/sentry"
 	raven "github.com/getsentry/raven-go"
+	"github.com/muravjov/slog/base"
+	"github.com/muravjov/slog/sentry"
 	logging "github.com/op/go-logging"
 )
 
