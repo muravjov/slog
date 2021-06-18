@@ -5,7 +5,7 @@ Also it provides a way to catch Golang panics with a special watchdog process. F
 
 # Installation
 
-    go get github.com/github.com/muravjov/slog
+    go get github.com/muravjov/slog
 
 # Usage
 
