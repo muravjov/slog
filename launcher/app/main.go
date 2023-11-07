@@ -10,9 +10,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/muravjov/slog"
-	"github.com/muravjov/slog/sentry"
 	"github.com/erikdubbelboer/gspt"
+	"github.com/muravjov/slog/base"
+	"github.com/muravjov/slog/sentry"
 )
 
 func redirectToFd(dst *os.File, mappedFd int) {

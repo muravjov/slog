@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/muravjov/slog"
+	"github.com/muravjov/slog/base"
 )
 
 var CheckError = base.CheckError

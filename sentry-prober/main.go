@@ -15,17 +15,17 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/getsentry/raven-go"
 	"github.com/muravjov/slog"
-	"github.com/muravjov/slog"
+	"github.com/muravjov/slog/base"
 	"github.com/muravjov/slog/sentry"
 	"github.com/muravjov/slog/stress"
 	slogV2 "github.com/muravjov/slog/v2"
-	"github.com/getsentry/raven-go"
 	logging "github.com/op/go-logging"
 	flag "github.com/spf13/pflag"
 
-	"github.com/muravjov/slog/watcher"
 	"github.com/kballard/go-shellquote"
+	"github.com/muravjov/slog/watcher"
 	"github.com/pkg/errors"
 )
 

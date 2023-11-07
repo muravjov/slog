@@ -8,10 +8,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/muravjov/slog"
+	raven "github.com/getsentry/raven-go"
+	"github.com/muravjov/slog/base"
 	"github.com/muravjov/slog/sentry"
 	"github.com/muravjov/slog/stress"
-	raven "github.com/getsentry/raven-go"
 )
 
 // :COPY_N_PASTE: Client

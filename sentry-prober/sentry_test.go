@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/muravjov/slog"
-	"github.com/muravjov/slog/stress"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/muravjov/slog/base"
+	"github.com/muravjov/slog/stress"
 )
 
 func TestStress(t *testing.T) {

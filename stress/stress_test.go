@@ -5,10 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/muravjov/slog"
-
 	"github.com/bradfitz/iter"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/muravjov/slog/base"
 )
 
 func TestStress(t *testing.T) {

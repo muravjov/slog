@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/muravjov/slog"
 	"github.com/bradfitz/iter"
+	"github.com/muravjov/slog/base"
 )
 
 // .Done() and .Wait() may be implemented via channels like so:

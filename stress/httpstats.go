@@ -13,7 +13,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/muravjov/slog"
+	"github.com/muravjov/slog/base"
 )
 
 type Statuses map[string]int64

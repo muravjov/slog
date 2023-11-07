@@ -9,17 +9,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/muravjov/slog/sentry"
-	"github.com/muravjov/slog/util"
-	slogV2 "github.com/muravjov/slog/v2"
-	"github.com/muravjov/slog/watcher"
 	"github.com/erikdubbelboer/gspt"
 	"github.com/getsentry/raven-go"
+	"github.com/muravjov/slog/base"
+	"github.com/muravjov/slog/sentry"
+	slogV2 "github.com/muravjov/slog/v2"
 	"github.com/op/go-logging"
 	"github.com/sirupsen/logrus"
 )
 
-var RandStringBytes = util.RandStringBytes
+var RandStringBytes = base.RandStringBytes
 
 func TestSlog(t *testing.T) {
 	t.SkipNow()
@@ -70,7 +69,7 @@ func TestSlog(t *testing.T) {
 
 		_ = resp
 		fmt.Println(err)
-		util.CheckError(err)
+		base.CheckError(err)
 	}
 
 	if false {
@@ -150,7 +149,7 @@ created by main.main.func1
 `
 		in := bytes.NewBufferString(stdErr)
 
-		watcher.ProcessStream(in, 0, nil)
+		base.ProcessStream(in, 0, nil)
 	}
 
 	if false {

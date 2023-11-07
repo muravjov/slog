@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/muravjov/slog"
-	flag "github.com/spf13/pflag"
 	"net/http"
 	"time"
+
+	"github.com/muravjov/slog"
+	"github.com/muravjov/slog/watcher"
+	flag "github.com/spf13/pflag"
 )
 
 func main() {
@@ -57,7 +59,7 @@ func main() {
 	//errFileName := ""
 	errFileName := *watcherStderr
 
-	slog.StartWatcher(dsn, errFileName)
+	watcher.StartWatcher(dsn, errFileName)
 
 	if *sleepFail {
 		time.Sleep(1 * time.Second)
